@@ -160,6 +160,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14px
     <span>Market Cap <strong>$2.31T</strong></span>
     <span>24h Vol <strong>$84.2B</strong></span>
     <span>BTC Dom <strong>52.4%</strong></span>
+    <span id="syncStatus" style="display:flex;align-items:center;"></span>
     <span id="clock" style="font-family:var(--mono);font-size:11px;"></span>
   </div>
 </div>
@@ -1287,55 +1288,159 @@ function swtab2(name,el){
 }
 function toast(msg,type='ok'){const el=document.getElementById('toast');el.textContent=msg;el.className=`toast ${type} show`;setTimeout(()=>el.classList.remove('show'),3000);}
 
-// ── PERSISTENCE ───────────────────────────────────────────────────────────────
-const SAVE_KEY='ctf_state_v1';
+// ── SUPABASE PERSISTENCE ──────────────────────────────────────────────────────
+const SB_URL='https://mslpattxlevxrcwkxrtl.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zbHBhdHR4bGV2eHJjd2t4cnRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4Mzg3MzIsImV4cCI6MjA5MDQxNDczMn0.LqAfaqVyMlJLZhQBJ0d_Y4Jf3y9u91ofC9yy5sQog6Q';
+const SB_HDR={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=minimal'};
+const LOCAL_KEY='ctf_state_v1';
+let syncStatus=''; // 'ok' | 'offline' | 'error'
 
+async function sbUpsert(table, id, data){
+  const res=await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method:'POST',
+    headers:{...SB_HDR,'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify({id, data, updated_at:new Date().toISOString()})
+  });
+  return res.ok;
+}
+
+async function sbGet(table, id){
+  const res=await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}&select=data`, {headers:SB_HDR});
+  if(!res.ok) return null;
+  const rows=await res.json();
+  return rows.length?rows[0].data:null;
+}
+
+async function sbDelete(table, id){
+  await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {method:'DELETE',headers:SB_HDR});
+}
+
+function setConnStatus(status){
+  syncStatus=status;
+  const el=document.getElementById('syncStatus');
+  if(!el) return;
+  const cfg={
+    ok:   {col:'var(--gr)', icon:'☁', txt:'Synced'},
+    saving:{col:'var(--am)', icon:'↑', txt:'Saving…'},
+    loading:{col:'var(--am)', icon:'↓', txt:'Loading…'},
+    offline:{col:'var(--mt)', icon:'○', txt:'Offline (local)'},
+    error: {col:'var(--rd)', icon:'!', txt:'Sync error'},
+  }[status]||{col:'var(--mt)',icon:'?',txt:''};
+  el.innerHTML=`<span style="color:${cfg.col};font-family:var(--mono);font-size:10px;">${cfg.icon} ${cfg.txt}</span>`;
+}
+
+// Save everything to Supabase + localStorage fallback
+let saveTimer=null;
 function saveState(){
+  // Always write locally first (instant)
   try{
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      ledger,
-      port,
-      realizedPnL,
-      riskLevel,
-      savedAt: Date.now()
-    }));
-  } catch(e){ console.warn('Save failed:',e); }
+    localStorage.setItem(LOCAL_KEY, JSON.stringify({ledger,port,realizedPnL,riskLevel,savedAt:Date.now()}));
+  }catch(e){}
+  // Debounce remote saves to avoid hammering on autoTick
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveRemote, 800);
 }
 
-function loadState(){
+async function saveRemote(){
+  setConnStatus('saving');
   try{
-    const raw=localStorage.getItem(SAVE_KEY);
-    if(!raw) return false;
-    const s=JSON.parse(raw);
-    if(s.ledger)      ledger.push(...s.ledger);
-    if(s.port)        Object.assign(port, s.port);
-    if(s.realizedPnL) Object.assign(realizedPnL, s.realizedPnL);
-    if(s.riskLevel){
-      riskLevel=s.riskLevel;
-      // Restore risk button UI
-      const btn=document.getElementById('rl-'+riskLevel);
-      if(btn) setRisk(riskLevel, btn);
+    const payload={ledger,port,realizedPnL,riskLevel};
+    await sbUpsert('trades',    'ledger',   {ledger});
+    await sbUpsert('portfolio', 'positions',{port});
+    await sbUpsert('settings',  'app',      {realizedPnL,riskLevel});
+    setConnStatus('ok');
+  }catch(e){
+    setConnStatus('offline');
+  }
+}
+
+async function loadState(){
+  setConnStatus('loading');
+  try{
+    // Try Supabase first
+    const [trData, portData, setData]=await Promise.all([
+      sbGet('trades',    'ledger'),
+      sbGet('portfolio', 'positions'),
+      sbGet('settings',  'app'),
+    ]);
+    if(trData||portData||setData){
+      if(trData?.ledger)       ledger.push(...trData.ledger);
+      if(portData?.port)       Object.assign(port, portData.port);
+      if(setData?.realizedPnL) Object.assign(realizedPnL, setData.realizedPnL);
+      if(setData?.riskLevel){
+        riskLevel=setData.riskLevel;
+        const btn=document.getElementById('rl-'+riskLevel);
+        if(btn) setRisk(riskLevel,btn);
+      }
+      // Also freshen local copy
+      try{localStorage.setItem(LOCAL_KEY,JSON.stringify({ledger,port,realizedPnL,riskLevel,savedAt:Date.now()}));}catch(e){}
+      setConnStatus('ok');
+      return ledger.length>0||Object.keys(port).length>0;
     }
-    return ledger.length>0||Object.keys(port).length>0;
-  } catch(e){ console.warn('Load failed:',e); return false; }
+    // Nothing in Supabase — try localStorage
+    const raw=localStorage.getItem(LOCAL_KEY);
+    if(raw){
+      const s=JSON.parse(raw);
+      if(s.ledger)       ledger.push(...s.ledger);
+      if(s.port)         Object.assign(port,s.port);
+      if(s.realizedPnL)  Object.assign(realizedPnL,s.realizedPnL);
+      if(s.riskLevel){
+        riskLevel=s.riskLevel;
+        const btn=document.getElementById('rl-'+riskLevel);
+        if(btn) setRisk(riskLevel,btn);
+      }
+      // Push local data up to Supabase
+      await saveRemote();
+      return ledger.length>0||Object.keys(port).length>0;
+    }
+    setConnStatus('ok');
+    return false;
+  }catch(e){
+    setConnStatus('offline');
+    // Fall back to localStorage
+    try{
+      const raw=localStorage.getItem(LOCAL_KEY);
+      if(raw){
+        const s=JSON.parse(raw);
+        if(s.ledger)      ledger.push(...s.ledger);
+        if(s.port)        Object.assign(port,s.port);
+        if(s.realizedPnL) Object.assign(realizedPnL,s.realizedPnL);
+        if(s.riskLevel){
+          riskLevel=s.riskLevel;
+          const btn=document.getElementById('rl-'+riskLevel);
+          if(btn) setRisk(riskLevel,btn);
+        }
+        return ledger.length>0||Object.keys(port).length>0;
+      }
+    }catch(e2){}
+    return false;
+  }
 }
 
-function clearState(){
+async function clearState(){
   if(!confirm('Clear all trades and portfolio data? This cannot be undone.')) return;
-  localStorage.removeItem(SAVE_KEY);
+  try{
+    await Promise.all([
+      sbDelete('trades',    'ledger'),
+      sbDelete('portfolio', 'positions'),
+      sbDelete('settings',  'app'),
+    ]);
+  }catch(e){}
+  localStorage.removeItem(LOCAL_KEY);
   ledger.length=0;
   Object.keys(port).forEach(k=>delete port[k]);
   Object.keys(realizedPnL).forEach(k=>delete realizedPnL[k]);
   renderLedger(); renderPort(); renderPnL();
   toast('All trade data cleared','ok');
+  setConnStatus('ok');
 }
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 buildTk();
 renderSide();
 requestAnimationFrame(()=>{
-  requestAnimationFrame(()=>{
-    const hadData=loadState();
+  requestAnimationFrame(async ()=>{
+    const hadData=await loadState();
     renderMain();
     renderLedger();
     renderPort();
@@ -1343,6 +1448,7 @@ requestAnimationFrame(()=>{
     setInterval(tick, 2000);
   });
 });
+
 </script>
 </body>
 </html>
