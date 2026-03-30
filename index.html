@@ -900,6 +900,7 @@ const RISK_PROFILES={
     sellFraction:0.5,    // sell only 50% — ride the trend
     stopLossPct:-12,     // wider stop-loss
     takeProfitPct:30,    // hold for bigger gains
+    minMovePct:5,        // never sell unless price moved ≥ 5% from avg (either direction)
     momentumSellThresh:-2.5,
     pbOversoldBuy:0.30,  // buy even mid-band on other signals
     pbOverboughtSell:0.90,
@@ -1017,9 +1018,12 @@ function autoTick(){
     else if(port[ci.id] && port[ci.id].units>0.000001){
       const curPrice=live[ci.id];
       const pnlPct=((curPrice-port[ci.id].avg)/port[ci.id].avg)*100;
-      const shouldSell=sig.action==='sell' && sig.sellScore>=p.sellThresh;
-      const stopHit=pnlPct<=p.stopLossPct;
-      const tpHit=pnlPct>=p.takeProfitPct;
+      const absPnlPct=Math.abs(pnlPct);
+      // HIGH risk: never sell unless price has moved ≥ minMovePct from entry (either direction)
+      const minMoveCleared=!p.minMovePct || absPnlPct>=p.minMovePct;
+      const shouldSell=sig.action==='sell' && sig.sellScore>=p.sellThresh && minMoveCleared;
+      const stopHit=pnlPct<=p.stopLossPct;   // stop-loss always overrides minMove
+      const tpHit=pnlPct>=p.takeProfitPct;   // take-profit always overrides minMove
       const reason=stopHit?`stop-loss ${pnlPct.toFixed(1)}%`:tpHit?`take-profit +${pnlPct.toFixed(1)}%`:sig.reasons.slice(0,2).join(', ');
 
       if(shouldSell||stopHit||tpHit){

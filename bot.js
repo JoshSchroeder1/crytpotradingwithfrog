@@ -79,6 +79,7 @@ const RISK_PROFILES = {
     sellFraction:       0.5,
     stopLossPct:        -12,
     takeProfitPct:      30,
+    minMovePct:         5,        // never sell unless price moved ≥ 5% from avg entry
     momentumSellThresh: -2.5,
     pbOversoldBuy:      0.30,
     pbOverboughtSell:   0.90,
@@ -417,9 +418,12 @@ async function scan() {
     else if (port[ci.id] && port[ci.id].units > 0.000001) {
       const price   = live[ci.id];
       const pnlPct  = (price - port[ci.id].avg) / port[ci.id].avg * 100;
+      const absPct  = Math.abs(pnlPct);
       const stopHit = pnlPct <= p.stopLossPct;
       const tpHit   = pnlPct >= p.takeProfitPct;
-      const sigSell = sig.action === 'sell' && sig.sellScore >= p.sellThresh;
+      // HIGH risk: only sell on signals if price has moved ≥ minMovePct (stop/TP always override)
+      const minMoveCleared = !p.minMovePct || absPct >= p.minMovePct;
+      const sigSell = sig.action === 'sell' && sig.sellScore >= p.sellThresh && minMoveCleared;
 
       if (stopHit || tpHit || sigSell) {
         const reason = stopHit
