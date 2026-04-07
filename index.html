@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Trading with Frog</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+:root{
+  --bg:#0a0c10;--bg2:#111318;--bg3:#181c24;
+  --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.14);
+  --tx:#e8eaf0;--mt:#6b7280;
+  --gr:#00d4aa;--rd:#f05a5a;--am:#f5a623;--pu:#9b7bff;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14px;}
+
+/* ── HEADER ── */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--bd);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:50px;}
+.logo{font-family:var(--mono);font-size:14px;letter-spacing:.05em;}
+.logo b{color:var(--gr);}
+.hstats{display:flex;gap:20px;font-size:11px;color:var(--mt);}
+.hstats strong{color:var(--tx);font-family:var(--mono);}
+
+/* ── TICKER ── */
+.tkwrap{overflow:hidden;background:var(--bg3);border-bottom:1px solid var(--bd);height:32px;}
+.tkinner{display:flex;animation:tk 55s linear infinite;white-space:nowrap;}
+.tkinner:hover{animation-play-state:paused;}
+@keyframes tk{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tki{display:inline-flex;align-items:center;gap:7px;padding:0 16px;height:32px;font-family:var(--mono);font-size:11px;border-right:1px solid var(--bd);cursor:pointer;}
+.tki:hover{background:rgba(255,255,255,.03);}
+.up{color:var(--gr)}.dn{color:var(--rd)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:600px;}
+.side{width:290px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);overflow-y:auto;max-height:calc(100vh - 82px);position:sticky;top:82px;}
+.content{flex:1;padding:16px;min-width:0;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.stabs{display:flex;border-bottom:1px solid var(--bd);}
+.stab{flex:1;padding:9px 0;text-align:center;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mt);cursor:pointer;border-bottom:2px solid transparent;}
+.stab.on{color:var(--gr);border-bottom-color:var(--gr);}
+.crow{display:flex;align-items:center;gap:9px;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--bd);}
+.crow:hover,.crow.sel{background:rgba(0,212,170,.06);}
+.crow.sel{border-left:2px solid var(--gr);}
+.cico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;font-weight:700;flex-shrink:0;}
+.cnm{font-weight:500;font-size:12px;}
+.csy{font-family:var(--mono);font-size:9px;color:var(--mt);}
+.cpc{text-align:right;}
+.cpr{font-family:var(--mono);font-size:11px;}
+.cch{font-family:var(--mono);font-size:10px;}
+
+/* ── BADGES ── */
+.sig{display:inline-flex;padding:2px 5px;border-radius:3px;font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+.sig.bull{background:rgba(0,212,170,.15);color:var(--gr);}
+.sig.bear{background:rgba(240,90,90,.15);color:var(--rd);}
+.sig.watch{background:rgba(245,166,35,.15);color:var(--am);}
+.sig.squeeze{background:rgba(155,123,255,.2);color:var(--pu);}
+.sig.neutral{background:rgba(107,114,128,.15);color:var(--mt);}
+@keyframes sqp{0%,100%{opacity:1}50%{opacity:.3}}
+.sqp{animation:sqp 1.4s ease-in-out infinite;}
+
+/* ── COIN HEADER ── */
+.coinbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.coinbar h2{font-family:var(--mono);font-size:20px;font-weight:400;}
+.coinbar .sub{color:var(--mt);font-size:11px;margin-top:2px;}
+.pbig{font-family:var(--mono);font-size:26px;font-weight:700;}
+.pchg{font-family:var(--mono);font-size:12px;margin-top:3px;}
+.ctrls{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}
+.btn{padding:4px 9px;background:transparent;border:1px solid var(--bd);color:var(--mt);font-size:10px;font-family:var(--mono);cursor:pointer;border-radius:3px;}
+.btn:hover,.btn.on{background:var(--gr);border-color:var(--gr);color:#000;}
+.bbn.on{background:rgba(155,123,255,.2);border-color:var(--pu);color:var(--pu);}
+
+/* ── CHART BOX ── */
+.cbox{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:14px;}
+.bbleg{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:10px;color:var(--mt);margin-bottom:8px;}
+.legd{width:12px;height:3px;border-radius:2px;display:inline-block;vertical-align:middle;}
+.sublbl{font-size:10px;color:var(--mt);font-family:var(--mono);margin:8px 0 4px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bd);padding-top:8px;}
+.bbstats{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;}
+.bbs{background:var(--bg3);border:1px solid var(--bd);border-radius:4px;padding:5px 9px;}
+.bbsl{color:var(--mt);font-size:9px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.bbsv{font-family:var(--mono);font-size:12px;font-weight:700;}
+
+/* ── METRICS ── */
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}
+.mc{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:10px;}
+.ml{font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
+.mv{font-family:var(--mono);font-size:14px;font-weight:700;}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:14px;}
+.tab{padding:7px 14px;font-size:11px;font-weight:500;color:var(--mt);cursor:pointer;border-bottom:2px solid transparent;}
+.tab.on{color:var(--gr);border-bottom-color:var(--gr);}
+.tp{display:none;}.tp.on{display:block;}
+
+/* ── PATTERNS ── */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.pc{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:11px;}
+.pc.bbc{border-color:rgba(155,123,255,.3);}
+.pn{font-size:11px;font-weight:600;margin-bottom:5px;}
+.pd{font-size:10px;color:var(--mt);line-height:1.5;}
+.pbar{display:flex;align-items:center;gap:5px;margin-top:7px;}
+.pbg{flex:1;height:3px;background:var(--bd);border-radius:2px;overflow:hidden;}
+.pbf{height:100%;border-radius:2px;transition:width .5s;}
+
+/* ── TRADE ── */
+.tpanel{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;}
+.trow{display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap;}
+.fg{display:flex;flex-direction:column;gap:3px;}
+.fg label{font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:.08em;}
+.fg input,.fg select{background:var(--bg3);border:1px solid var(--bd2);color:var(--tx);padding:7px 9px;border-radius:4px;font-family:var(--mono);font-size:11px;width:130px;outline:none;}
+.fg input:focus,.fg select:focus{border-color:var(--gr);}
+.exbtn{padding:7px 18px;background:var(--gr);border:none;color:#000;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;}
+
+/* ── LEDGER / PORTFOLIO ── */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{text-align:left;padding:7px 9px;font-size:9px;color:var(--mt);text-transform:uppercase;border-bottom:1px solid var(--bd);font-weight:400;}
+.tbl td{padding:8px 9px;border-bottom:1px solid var(--bd);font-family:var(--mono);}
+.tbl tr:hover td{background:rgba(255,255,255,.02);}
+.pnlp{color:var(--gr);}.pnln{color:var(--rd);}
+.psumm{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;}
+.pcard{background:var(--bg3);border:1px solid var(--bd);border-radius:6px;padding:11px;text-align:center;}
+.pval{font-family:var(--mono);font-size:17px;font-weight:700;}
+.plbl{font-size:9px;color:var(--mt);margin-top:3px;text-transform:uppercase;letter-spacing:.05em;}
+.empty{text-align:center;padding:36px;color:var(--mt);font-size:12px;}
+.stitle{font-size:10px;font-weight:600;color:var(--mt);text-transform:uppercase;letter-spacing:.1em;margin-bottom:9px;display:flex;align-items:center;gap:7px;}
+.stitle::after{content:'';flex:1;height:1px;background:var(--bd);}
+.score-box{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:13px;margin-top:14px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--bd2);border-radius:6px;padding:11px 16px;font-size:12px;z-index:999;transform:translateY(60px);opacity:0;transition:all .25s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{border-color:var(--gr);}.toast.err{border-color:var(--rd);}
+
+.at-card{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:4px;}
+.at-card.buy-sig{border-color:rgba(0,212,170,.4);background:rgba(0,212,170,.04);}
+.at-card.sell-sig{border-color:rgba(240,90,90,.4);background:rgba(240,90,90,.04);}
+.at-card.sq-sig{border-color:rgba(155,123,255,.4);background:rgba(155,123,255,.04);}
+.at-score-bar{height:3px;border-radius:2px;background:var(--bd);overflow:hidden;margin-top:4px;}
+.at-score-fill{height:100%;border-radius:2px;}
+.pnl-big{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.pnl-bc{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;text-align:center;}
+.pnl-bv{font-family:var(--mono);font-size:20px;font-weight:700;margin-bottom:4px;}
+.pnl-bl{font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:.06em;}
+.pnl-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bd);font-size:12px;}
+.pnl-bar-wrap{flex:1;height:4px;background:var(--bd);border-radius:2px;overflow:hidden;min-width:60px;}
+.pnl-bar-fill{height:100%;border-radius:2px;transition:width .4s;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">Crypto Trading <b>with Frog</b></div>
+  <div class="hstats">
+    <span>Market Cap <strong>$2.31T</strong></span>
+    <span>24h Vol <strong>$84.2B</strong></span>
+    <span>BTC Dom <strong>52.4%</strong></span>
+    <span id="cgStatus" style="display:flex;align-items:center;"><span style="color:var(--mt);font-family:var(--mono);font-size:10px;">○ Connecting…</span></span>
+    <span id="syncStatus" style="display:flex;align-items:center;"></span>
+    <span id="clock" style="font-family:var(--mono);font-size:11px;"></span>
+  </div>
+</div>
+
+<div class="tkwrap"><div class="tkinner" id="tk"></div></div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="side">
+    <div class="stabs">
+      <div class="stab on"  onclick="swtab('market',this)">Market</div>
+      <div class="stab"     onclick="swtab('signals',this)">BB Signals</div>
+      <div class="stab"     onclick="swtab('watch',this)">Watchlist</div>
+    </div>
+    <div id="sp-market"></div>
+    <div id="sp-signals" style="display:none;"></div>
+    <div id="sp-watch" style="display:none;padding:14px;font-size:11px;color:var(--mt);">Click any coin to view its BB analysis.</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="content">
+
+    <!-- COIN HEADER -->
+    <div class="coinbar">
+      <div>
+        <h2 id="cn">Bitcoin <span style="color:var(--mt);font-size:13px;">BTC</span></h2>
+        <div class="sub" id="cs">Proof of Work · Rank #1</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="pbig" id="cp">$67,420</div>
+        <div class="pchg up" id="cc">+2.34% today</div>
+        <div class="ctrls" style="justify-content:flex-end;">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button class="btn"     onclick="setTF('1s',this)">1S</button>
+            <button class="btn"     onclick="setTF('1m',this)">1M</button>
+            <button class="btn"     onclick="setTF('1h',this)">1H</button>
+            <button class="btn"     onclick="setTF('1d',this)">1D</button>
+            <span style="color:var(--bd2);padding:0 2px;">|</span>
+            <button class="btn"     onclick="setTF('7d',this)">7D</button>
+            <button class="btn on"  onclick="setTF('30d',this)">30D</button>
+            <button class="btn"     onclick="setTF('90d',this)">3M</button>
+            <button class="btn"     onclick="setTF('180d',this)">6M</button>
+            <button class="btn"     onclick="setTF('365d',this)">1Y</button>
+          </div>
+          <button class="btn bbn on" id="bbt" onclick="togBB()">BB Bands</button>
+          <button class="btn bbn"    id="sdt" onclick="togSD()">2.5σ crypto</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="cbox">
+      <div class="bbleg">
+        <span><span class="legd" style="background:var(--pu);"></span> Upper/Lower BB</span>
+        <span><span class="legd" style="background:rgba(155,123,255,.4);"></span> SMA-20</span>
+        <span><span class="legd" style="background:var(--gr);height:2px;"></span> Price</span>
+        <span id="sqlbl" style="margin-left:auto;"></span>
+      </div>
+
+      <!-- Price chart — fixed pixel height on wrapper AND canvas -->
+      <div style="position:relative;width:100%;height:220px;">
+        <canvas id="pc" width="800" height="220"></canvas>
+      </div>
+
+      <!-- %B sub chart -->
+      <div class="sublbl">
+        <span style="color:var(--pu);font-weight:700;">%B</span>
+        <span>Position Within Bands</span>
+        <span id="pbnow" style="color:var(--tx);font-weight:600;"></span>
+        <span style="margin-left:auto;font-size:9px;">green &lt;0.2 oversold · red &gt;0.8 overbought</span>
+      </div>
+      <div style="position:relative;width:100%;height:70px;">
+        <canvas id="pbc" width="800" height="70"></canvas>
+      </div>
+
+      <!-- BW sub chart -->
+      <div class="sublbl">
+        <span style="color:var(--pu);font-weight:700;">BW</span>
+        <span>Band Width — Squeeze Detector</span>
+        <span id="bwnow" style="color:var(--tx);font-weight:600;"></span>
+        <span style="margin-left:auto;font-size:9px;">amber line = 90-day squeeze threshold</span>
+      </div>
+      <div style="position:relative;width:100%;height:70px;">
+        <canvas id="bwc" width="800" height="70"></canvas>
+      </div>
+
+      <div class="bbstats" id="bbst"></div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="mgrid" id="mg"></div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab on" onclick="swtab2('patterns',this)">Pattern Analysis</div>
+      <div class="tab"    onclick="swtab2('trade',this)">Simulate Trade</div>
+      <div class="tab"    onclick="swtab2('auto',this)">Auto Trader</div>
+      <div class="tab"    onclick="swtab2('ledger',this)">Trade Ledger</div>
+      <div class="tab"    onclick="swtab2('port',this)">Portfolio</div>
+      <div class="tab"    onclick="swtab2('pnl',this)">P&amp;L Summary</div>
+    </div>
+
+    <div id="tp-patterns" class="tp on">
+      <div class="stitle">Upswing Precursor Patterns — Last 12 Months</div>
+      <div class="pgrid" id="pg"></div>
+      <div class="score-box"><div class="stitle">Signal Composite Score</div><div id="sc"></div></div>
+    </div>
+
+    <div id="tp-trade" class="tp">
+      <p style="font-size:12px;color:var(--mt);margin-bottom:12px;">Simulate a trade on <strong id="ttn" style="color:var(--tx);">Bitcoin (BTC)</strong>.</p>
+      <div class="tpanel">
+        <div class="trow">
+          <div class="fg"><label>Coin</label><select id="tco" onchange="utf()"></select></div>
+          <div class="fg"><label>Action</label><select id="tac"><option value="buy">BUY</option><option value="sell">SELL</option></select></div>
+          <div class="fg"><label>Amount USD</label><input type="number" id="tam" value="1000" min="10" step="10"/></div>
+          <div class="fg"><label>Price (auto)</label><input type="text" id="tpr" readonly style="opacity:.6;"/></div>
+          <div class="fg"><label>Units</label><input type="text" id="tun" readonly style="opacity:.6;"/></div>
+          <button class="exbtn" onclick="exTrade()">EXECUTE</button>
+        </div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--bd);font-size:10px;color:var(--mt);display:flex;gap:18px;" id="th"></div>
+      </div>
+    </div>
+
+    <div id="tp-auto" class="tp">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:13px;font-weight:600;">AI Auto Trader</div>
+          <div style="font-size:11px;color:var(--mt);margin-top:2px;">Monitors all 15 coins using BB, RSI, %B and momentum. Risk level controls signal thresholds, position sizing and sell sensitivity.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+
+          <!-- Risk level toggle -->
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:.08em;">Risk Level</div>
+            <div style="display:flex;gap:0;border:1px solid var(--bd2);border-radius:4px;overflow:hidden;">
+              <button id="rl-low"  onclick="setRisk('low',this)"  class="rl-btn rl-on-low"  style="padding:5px 12px;border:none;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;background:rgba(0,212,170,.2);color:#00d4aa;letter-spacing:.04em;">LOW</button>
+              <button id="rl-med"  onclick="setRisk('med',this)"  class="rl-btn"             style="padding:5px 12px;border:none;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;background:var(--bg3);color:var(--mt);border-left:1px solid var(--bd2);border-right:1px solid var(--bd2);letter-spacing:.04em;">MED</button>
+              <button id="rl-high" onclick="setRisk('high',this)" class="rl-btn"             style="padding:5px 12px;border:none;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;background:var(--bg3);color:var(--mt);letter-spacing:.04em;">HIGH</button>
+            </div>
+          </div>
+
+          <!-- Risk profile explainer badge -->
+          <div id="riskBadge" style="padding:6px 10px;background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.3);border-radius:4px;font-size:10px;color:var(--gr);max-width:200px;line-height:1.4;">
+            Conservative · High conviction only · Protects capital
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:.08em;">Trade Size</div>
+            <select id="atAmt" style="background:var(--bg3);border:1px solid var(--bd2);color:var(--tx);padding:5px 8px;border-radius:4px;font-family:var(--mono);font-size:11px;outline:none;">
+              <option value="500">$500</option>
+              <option value="1000" selected>$1,000</option>
+              <option value="2500">$2,500</option>
+              <option value="5000">$5,000</option>
+            </select>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:.08em;">Interval</div>
+            <select id="atInt" onchange="if(autoRunning){clearInterval(autoInterval);autoInterval=setInterval(autoTick,parseInt(this.value)||10000);}" style="background:var(--bg3);border:1px solid var(--bd2);color:var(--tx);padding:5px 8px;border-radius:4px;font-family:var(--mono);font-size:11px;outline:none;">
+              <option value="5000">5 seconds</option>
+              <option value="10000" selected>10 seconds</option>
+              <option value="30000">30 seconds</option>
+              <option value="60000">1 minute</option>
+            </select>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="font-size:9px;color:transparent;">.</div>
+            <div style="display:flex;gap:6px;">
+              <button id="atBtn" onclick="toggleAutoTrader()" style="padding:7px 18px;background:var(--am);border:none;color:#000;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;border-radius:4px;">PAUSE</button>
+              <button onclick="clearState()" style="padding:7px 12px;background:transparent;border:1px solid var(--bd2);color:var(--mt);font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:4px;" title="Clear all saved trade data">CLEAR DATA</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk profile detail strip -->
+      <div id="riskDetail" style="background:var(--bg2);border:1px solid rgba(0,212,170,.25);border-radius:6px;padding:10px 14px;margin-bottom:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:10px;">
+        <div><span style="color:var(--mt);">Buy threshold</span><br><strong id="rd-buy" style="font-family:var(--mono);">Score ≥ 68</strong></div>
+        <div><span style="color:var(--mt);">Sell threshold</span><br><strong id="rd-sell" style="font-family:var(--mono);">Score ≥ 62</strong></div>
+        <div><span style="color:var(--mt);">Sell strategy</span><br><strong id="rd-sellstrat" style="font-family:var(--mono);">Full position</strong></div>
+        <div><span style="color:var(--mt);">Max positions</span><br><strong id="rd-maxpos" style="font-family:var(--mono);">3 coins</strong></div>
+      </div>
+
+      <!-- Status bar -->
+      <div id="atStatus" style="background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:12px;margin-bottom:12px;font-size:11px;color:var(--mt);font-family:var(--mono);">
+        Auto trader is starting up…
+      </div>
+      <!-- Signal scan grid -->
+      <div class="stitle">Live Signal Scan — All Coins</div>
+      <div id="atGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;"></div>
+      <!-- Recent auto trades -->
+      <div class="stitle" style="margin-top:14px;">Recent Auto Trades</div>
+      <div id="atRecent"></div>
+    </div>
+
+    <div id="tp-ledger" class="tp"><div id="led"></div></div>
+
+    <div id="tp-pnl" class="tp">
+      <div id="pnlSumm" style="margin-bottom:16px;"></div>
+      <div class="stitle">Per-Coin P&L</div>
+      <div id="pnlCoins"></div>
+      <div class="stitle" style="margin-top:14px;">Realized Trades History</div>
+      <div id="pnlRealized"></div>
+    </div>
+
+    <div id="tp-port" class="tp">
+      <div class="psumm" id="ps"></div>
+      <div class="stitle">Holdings</div>
+      <div id="ph"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── COINS ──────────────────────────────────────────────────────────────────────
+const COINS=[
+  {id:'btc',  cg:'bitcoin',          sym:'BTC', name:'Bitcoin',   rank:1, type:'PoW',  col:'#f7931a',bg:'rgba(247,147,26,.15)', p:67420, c:0, mc:1320,v:28.4,ath:73750},
+  {id:'eth',  cg:'ethereum',         sym:'ETH', name:'Ethereum',  rank:2, type:'PoS',  col:'#627eea',bg:'rgba(98,126,234,.15)',  p:3521,  c:0, mc:423, v:14.2,ath:4878},
+  {id:'sol',  cg:'solana',           sym:'SOL', name:'Solana',    rank:5, type:'PoH',  col:'#9945ff',bg:'rgba(153,69,255,.15)', p:182.4, c:0, mc:84,  v:3.8, ath:260},
+  {id:'bnb',  cg:'binancecoin',      sym:'BNB', name:'BNB',       rank:4, type:'PoSA', col:'#f3ba2f',bg:'rgba(243,186,47,.15)', p:594,   c:0, mc:88,  v:2.1, ath:691},
+  {id:'xrp',  cg:'ripple',           sym:'XRP', name:'XRP',       rank:6, type:'RPCA', col:'#00aae4',bg:'rgba(0,170,228,.15)',  p:.587,  c:0, mc:33,  v:1.2, ath:3.84},
+  {id:'ada',  cg:'cardano',          sym:'ADA', name:'Cardano',   rank:9, type:'PoS',  col:'#0d6efd',bg:'rgba(13,110,253,.15)', p:.512,  c:0, mc:18,  v:.4,  ath:3.09},
+  {id:'avax', cg:'avalanche-2',      sym:'AVAX',name:'Avalanche', rank:11,type:'PoS',  col:'#e84142',bg:'rgba(232,65,66,.15)',  p:38.7,  c:0, mc:16,  v:.6,  ath:146.2},
+  {id:'dot',  cg:'polkadot',         sym:'DOT', name:'Polkadot',  rank:13,type:'NPoS', col:'#e6007a',bg:'rgba(230,0,122,.15)',  p:8.12,  c:0, mc:11,  v:.3,  ath:54.98},
+  {id:'link', cg:'chainlink',        sym:'LINK',name:'Chainlink', rank:14,type:'ERC20',col:'#2a5ada',bg:'rgba(42,90,218,.15)', p:15.2,  c:0, mc:9,   v:.5,  ath:52.7},
+  {id:'matic',cg:'matic-network',    sym:'MATIC',name:'Polygon',  rank:17,type:'PoS',  col:'#8247e5',bg:'rgba(130,71,229,.15)',p:.728,  c:0, mc:7,   v:.3,  ath:2.92},
+  {id:'uni',  cg:'uniswap',          sym:'UNI', name:'Uniswap',   rank:21,type:'DEX',  col:'#ff007a',bg:'rgba(255,0,122,.15)', p:9.84,  c:0, mc:6,   v:.2,  ath:44.9},
+  {id:'atom', cg:'cosmos',           sym:'ATOM',name:'Cosmos',    rank:22,type:'PoS',  col:'#6f7390',bg:'rgba(111,115,144,.15)',p:9.22, c:0, mc:3.6, v:.15, ath:44.45},
+  {id:'near', cg:'near',             sym:'NEAR',name:'NEAR',      rank:18,type:'PoS',  col:'#00c08b',bg:'rgba(0,192,139,.15)', p:7.14,  c:0, mc:7.8, v:.4,  ath:20.44},
+  {id:'arb',  cg:'arbitrum',         sym:'ARB', name:'Arbitrum',  rank:31,type:'L2',   col:'#28a0f0',bg:'rgba(40,160,240,.15)',p:1.24,  c:0, mc:4.9, v:.3,  ath:2.39},
+  {id:'op',   cg:'optimism',         sym:'OP',  name:'Optimism',  rank:35,type:'L2',   col:'#ff0420',bg:'rgba(255,4,32,.15)',  p:2.87,  c:0, mc:3.1, v:.25, ath:4.84},
+];
+
+// ── BINANCE REAL-TIME PRICES ──────────────────────────────────────────────────
+// Binance public API — no key required, full CORS support in browsers
+const BINANCE_REST = 'https://api.binance.com/api/v3';
+const BINANCE_WS   = 'wss://stream.binance.com:9443/stream';
+
+// Map our coin IDs to Binance trading pairs
+const BINANCE_PAIRS = {
+  btc:'BTCUSDT', eth:'ETHUSDT', sol:'SOLUSDT', bnb:'BNBUSDT',
+  xrp:'XRPUSDT', ada:'ADAUSDT', avax:'AVAXUSDT', dot:'DOTUSDT',
+  link:'LINKUSDT', matic:'MATICUSDT', uni:'UNIUSDT', atom:'ATOMUSDT',
+  near:'NEARUSDT', arb:'ARBUSDT', op:'OPUSDT',
+};
+// Reverse map: pair → coinId
+const PAIR_TO_ID = Object.fromEntries(Object.entries(BINANCE_PAIRS).map(([id,pair])=>[pair,id]));
+
+let wsConn = null;      // WebSocket connection
+let wsPingInterval = null;
+
+// Fetch snapshot of all prices + 24h stats via REST (called once on boot)
+async function fetchBinanceSnapshot(){
+  try{
+    const pairs = Object.values(BINANCE_PAIRS);
+    const symbols = JSON.stringify(pairs);
+    const res = await fetch(`${BINANCE_REST}/ticker/24hr?symbols=${encodeURIComponent(symbols)}`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    let updated = 0;
+    data.forEach(d=>{
+      const id = PAIR_TO_ID[d.symbol];
+      if(!id) return;
+      const price = parseFloat(d.lastPrice);
+      const chg   = parseFloat(d.priceChangePercent);
+      const vol   = parseFloat(d.quoteVolume)/1e9;
+      if(price > 0){
+        live[id] = price;
+        const c = COINS.find(x=>x.id===id);
+        if(c){
+          c.p   = price;
+          c.c   = chg;
+          c.v   = parseFloat(vol.toFixed(2));
+          // Bust cached simulated history so charts regenerate anchored to real price
+          Object.keys(HC).filter(k=>k.startsWith(id+'_')).forEach(k=>delete HC[k]);
+        }
+        updated++;
+      }
+    });
+    console.log(`[Binance] Snapshot: ${updated} prices loaded. BTC=$${live['btc']}`);
+    setCGStatus('live');
+    // Re-render everything now that prices are real
+    buildTk();
+    renderSide();
+    document.getElementById('cp').textContent = fm(live[coin.id]);
+    const ce = document.getElementById('cc');
+    ce.textContent = pc(coin.c)+' today';
+    ce.className = 'pchg '+(coin.c>=0?'up':'dn');
+    renderMetrics();
+    utf();
+    return true;
+  }catch(e){
+    console.warn('[Binance] Snapshot failed:', e.message);
+    setCGStatus('error', e.message);
+    return false;
+  }
+}
+
+// Fetch real OHLC history from Binance (klines endpoint)
+// days → Binance interval mapping
+function daysToInterval(days){
+  if(days<=1)   return {interval:'1m',  limit:1440};
+  if(days<=7)   return {interval:'1h',  limit:168};
+  if(days<=30)  return {interval:'4h',  limit:180};
+  if(days<=90)  return {interval:'1d',  limit:90};
+  if(days<=180) return {interval:'1d',  limit:180};
+  return              {interval:'1d',  limit:365};
+}
+
+const cgHistCache = {}; // reuse cache key name for compatibility
+async function fetchRealHist(coinId, days){
+  const key = `${coinId}_${days}`;
+  if(cgHistCache[key]) return cgHistCache[key];
+  const pair = BINANCE_PAIRS[coinId];
+  if(!pair) return null;
+  const {interval, limit} = daysToInterval(days);
+  try{
+    const res = await fetch(`${BINANCE_REST}/klines?symbol=${pair}&interval=${interval}&limit=${limit}`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const klines = await res.json();
+    // Kline format: [openTime, open, high, low, close, volume, ...]
+    const pts = klines.map(k=>({
+      t: k[0],
+      v: parseFloat(parseFloat(k[4]).toFixed(parseFloat(k[4])<1?6:2)) // close price
+    }));
+    cgHistCache[key] = pts;
+    delete HC[key]; // bust simulated cache
+    return pts;
+  }catch(e){
+    console.warn(`[Binance] History failed for ${coinId}:`, e.message);
+    return null;
+  }
+}
+
+// Open WebSocket for real-time price stream (all coins simultaneously)
+function openWebSocket(){
+  if(wsConn && wsConn.readyState < 2) wsConn.close();
+  // Build combined stream: btcusdt@miniTicker/ethusdt@miniTicker/...
+  const streams = Object.values(BINANCE_PAIRS)
+    .map(p=>p.toLowerCase()+'@miniTicker')
+    .join('/');
+  wsConn = new WebSocket(`${BINANCE_WS}?streams=${streams}`);
+
+  wsConn.onopen = ()=>{
+    console.log('[Binance WS] Connected');
+    setCGStatus('live');
+    // Ping every 3 minutes to keep alive
+    clearInterval(wsPingInterval);
+    wsPingInterval = setInterval(()=>{
+      if(wsConn.readyState===1) wsConn.send(JSON.stringify({method:'PING'}));
+    }, 180000);
+  };
+
+  wsConn.onmessage = (evt)=>{
+    try{
+      const msg = JSON.parse(evt.data);
+      const d = msg.data; // miniTicker format
+      if(!d || !d.s) return;
+      const id = PAIR_TO_ID[d.s];
+      if(!id) return;
+      const price = parseFloat(d.c); // current close price
+      const chgPct = parseFloat(d.P); // 24h price change %
+      if(price > 0){
+        live[id] = price;
+        const c = COINS.find(x=>x.id===id);
+        if(c){ c.p=price; c.c=chgPct; }
+      }
+      // Update UI for the selected coin live
+      if(id === coin.id){
+        document.getElementById('cp').textContent = fm(live[id]);
+        const ce = document.getElementById('cc');
+        const chg = COINS.find(x=>x.id===id)?.c || 0;
+        ce.textContent = pc(chg)+' today';
+        ce.className = 'pchg '+(chg>=0?'up':'dn');
+      }
+      // Refresh ticker and sidebar every update
+      buildTk();
+      renderSide();
+      utf();
+    }catch(e){}
+  };
+
+  wsConn.onerror = (e)=>{
+    console.warn('[Binance WS] Error:', e);
+    setCGStatus('error','WebSocket error — will retry');
+  };
+
+  wsConn.onclose = ()=>{
+    console.log('[Binance WS] Closed — reconnecting in 5s');
+    setCGStatus('connecting');
+    clearInterval(wsPingInterval);
+    setTimeout(openWebSocket, 5000);
+  };
+}
+
+function setCGStatus(status, detail=''){
+  const el = document.getElementById('cgStatus');
+  if(!el) return;
+  const cfg = {
+    live:       {col:'var(--gr)', txt:'● Live prices'},
+    connecting: {col:'var(--am)', txt:'○ Connecting…'},
+    error:      {col:'var(--rd)', txt:'✖ Price error'},
+  }[status] || {col:'var(--mt)', txt:'○ '+status};
+  el.innerHTML=`<span style="color:${cfg.col};font-family:var(--mono);font-size:10px;" title="${detail}">${cfg.txt}</span>`;
+}
+
+async function loadRealHist(coinId, days){
+  const pts = await fetchRealHist(coinId, days);
+  if(pts && pts.length){
+    HC[`${coinId}_${days}`] = pts;
+    buildCharts();
+  }
+}
+
+// ── PRICE HISTORY ─────────────────────────────────────────────────────────────
+// Simulated fallback — anchors to current live price so charts are always correct
+function genHist(coin, days){
+  const pts=[], now=Date.now();
+  // Use live price as anchor — falls back to coin.p if live not yet set
+  const anchor = (live[coin.id] && live[coin.id] > 0) ? live[coin.id] : coin.p;
+  let p = anchor;
+  for(let i=days;i>=0;i--){
+    pts.push({t:now-i*86400000, v:Math.max(p*.01,p)});
+    const vol=.022+Math.random()*.025, tr=(Math.random()-.47)*vol;
+    p=p*(1+tr);
+    if(Math.random()<.03) p*=(1.05+Math.random()*.12);
+    if(Math.random()<.02) p*=(.88+Math.random()*.05);
+    p=Math.max(anchor*.08,p);
+  }
+  const sc=anchor/pts[pts.length-1].v;
+  return pts.map(pt=>({t:pt.t, v:parseFloat((pt.v*sc).toFixed(anchor<1?6:2))}));
+}
+const HC={};
+function hist(id,days){
+  const k=id+'_'+days;
+  if(!HC[k]) HC[k]=genHist(COINS.find(c=>c.id===id),days);
+  return HC[k];
+}
+
+// Load real history for the selected coin + timeframe, rebuild chart
+async function loadRealHist(coinId, days){
+  const c = COINS.find(x=>x.id===coinId);
+  if(!c) return;
+  const pts = await fetchCGHist(c, days);
+  if(pts && pts.length){
+    HC[`${coinId}_${days}`] = pts;
+    buildCharts(); // redraw with real data
+  }
+}
+
+// ── BOLLINGER BANDS ───────────────────────────────────────────────────────────
+function calcBB(prices, period=20, mult=2){
+  const up=[],mid=[],lo=[],pb=[],bw=[];
+  for(let i=0;i<prices.length;i++){
+    if(i<period-1){up.push(null);mid.push(null);lo.push(null);pb.push(null);bw.push(null);continue;}
+    const sl=prices.slice(i-period+1,i+1);
+    const sma=sl.reduce((a,b)=>a+b,0)/period;
+    const sd=Math.sqrt(sl.reduce((a,b)=>a+(b-sma)**2,0)/period);
+    const u=sma+mult*sd, l=sma-mult*sd;
+    up.push(+u.toFixed(6)); mid.push(+sma.toFixed(6)); lo.push(+l.toFixed(6));
+    pb.push(+((prices[i]-l)/(u-l||1)).toFixed(4));
+    bw.push(+((u-l)/sma).toFixed(4));
+  }
+  return {up,mid,lo,pb,bw};
+}
+function isSqueeze(bw,lb=90){
+  const v=bw.filter(x=>x!=null);
+  if(v.length<lb) return false;
+  const cur=v[v.length-1], mn=Math.min(...v.slice(-lb));
+  return cur<=mn*1.06;
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let coin=COINS[0], tf='30d', bbOn=true, hiSD=false;
+let PC=null, PBC=null, BWC=null;
+let ledger=[], port={}, live={};
+COINS.forEach(c=>live[c.id]=c.p);
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function fm(n,d=2){
+  if(n>=1e9) return'$'+(n/1e9).toFixed(1)+'B';
+  if(n>=1e6) return'$'+(n/1e6).toFixed(1)+'M';
+  if(n>=1000) return'$'+n.toLocaleString('en-US',{maximumFractionDigits:d});
+  if(n<.001) return'$'+n.toFixed(6);
+  if(n<1) return'$'+n.toFixed(4);
+  return'$'+n.toFixed(d);
+}
+function pc(n){return(n>=0?'+':'')+n.toFixed(2)+'%';}
+
+// Maps tf key → {points, intervalMs, labelFn}
+const TF_CFG={
+  '1s': {pts:60,  ms:1000,    lbl:t=>new Date(t).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})},
+  '1m': {pts:60,  ms:60000,   lbl:t=>new Date(t).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})},
+  '1h': {pts:60,  ms:3600000, lbl:t=>new Date(t).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})},
+  '1d': {pts:96,  ms:900000,  lbl:t=>new Date(t).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})},
+  '7d': {pts:null,ms:86400000,lbl:t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'})},
+  '30d':{pts:null,ms:86400000,lbl:t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'})},
+  '90d':{pts:null,ms:86400000,lbl:t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'})},
+  '180d':{pts:null,ms:86400000,lbl:t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'})},
+  '365d':{pts:null,ms:86400000,lbl:t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'})},
+};
+
+// Intraday data generator — short-term simulated OHLC-style price path
+function genIntraday(coin, cfg){
+  const now=Date.now(), pts=[], n=cfg.pts;
+  let p=live[coin.id];
+  const vol=coin.id==='btc'?.0008:coin.id==='sol'?.0015:.0012;
+  for(let i=n-1;i>=0;i--){
+    pts.push({t:now-i*cfg.ms, v:parseFloat(p.toFixed(p<1?6:2))});
+    p=p*(1+(Math.random()-.499)*vol);
+    p=Math.max(p*.5,p);
+  }
+  return pts;
+}
+
+function isIntraday(t){return['1s','1m','1h','1d'].includes(t);}
+function tfd(t){return{'7d':7,'30d':30,'90d':90,'180d':180,'365d':365}[t]||30;}
+
+let liveRefreshInterval=null;
+
+// ── BUILD CHARTS ──────────────────────────────────────────────────────────────
+function buildCharts(){
+  const cfg=TF_CFG[tf];
+  let h;
+  if(isIntraday(tf)){
+    h=genIntraday(coin,cfg);
+  } else {
+    h=hist(coin.id,tfd(tf));
+  }
+  const lbls=h.map(x=>cfg.lbl(x.t));
+  const prices=h.map(x=>x.v);
+  const mult=hiSD?2.5:2.0;
+  const bb=calcBB(prices,20,mult);
+  const sq=isSqueeze(bb.bw);
+
+  // squeeze badge
+  document.getElementById('sqlbl').innerHTML=sq
+    ?'<span class="sig squeeze sqp">SQUEEZE ACTIVE</span>'
+    :'<span style="font-size:10px;color:var(--mt);">no squeeze</span>';
+
+  const isUp=prices[prices.length-1]>=prices[0];
+
+  // ── Price chart ──────────────────────────────────────────────────────────────
+  const pEl=document.getElementById('pc');
+  if(PC){PC.destroy();PC=null;}
+
+  // inline fill plugin — shades between upper and lower bands
+  const bbPlugin={
+    id:'bbfill',
+    beforeDatasetsDraw(ch){
+      if(!bbOn) return;
+      const {ctx,chartArea:ca,scales:{x,y}}=ch;
+      const u=bb.up, l=bb.lo;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(ca.left,ca.top,ca.width,ca.height);
+      ctx.clip();
+      ctx.beginPath();
+      let mv=false;
+      for(let i=0;i<u.length;i++){
+        if(u[i]==null) continue;
+        const px=x.getPixelForValue(i), py=y.getPixelForValue(u[i]);
+        mv?(ctx.lineTo(px,py)):(ctx.moveTo(px,py),mv=true);
+      }
+      for(let i=l.length-1;i>=0;i--){
+        if(l[i]==null) continue;
+        ctx.lineTo(x.getPixelForValue(i),y.getPixelForValue(l[i]));
+      }
+      ctx.closePath();
+      ctx.fillStyle='rgba(155,123,255,.08)';
+      ctx.fill();
+      ctx.restore();
+    }
+  };
+
+  PC=new Chart(pEl,{
+    type:'line',
+    data:{labels:lbls, datasets:[
+      {label:'Upper',data:bb.up, borderColor:bbOn?'rgba(155,123,255,.7)':'transparent',backgroundColor:'transparent',borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false,tension:.3,spanGaps:false},
+      {label:'Mid',  data:bb.mid,borderColor:bbOn?'rgba(155,123,255,.35)':'transparent',backgroundColor:'transparent',borderWidth:1,borderDash:[6,4],pointRadius:0,fill:false,tension:.3,spanGaps:false},
+      {label:'Lower',data:bb.lo, borderColor:bbOn?'rgba(155,123,255,.7)':'transparent',backgroundColor:'transparent',borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false,tension:.3,spanGaps:false},
+      {label:'Price',data:prices,borderColor:isUp?'#00d4aa':'#f05a5a',backgroundColor:isUp?'rgba(0,212,170,.12)':'rgba(240,90,90,.12)',borderWidth:2,pointRadius:0,pointHoverRadius:4,fill:'origin',tension:.3},
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#181c24',borderColor:'rgba(255,255,255,.1)',borderWidth:1,
+          titleColor:'#6b7280',bodyColor:'#e8eaf0',
+          callbacks:{label:c=>{
+            if(c.dataset.label==='Price') return ' Price: '+fm(c.parsed.y);
+            if(c.dataset.label==='Mid')   return ' SMA-20: '+fm(c.parsed.y);
+            if(c.dataset.label==='Upper') return ` BB upper: `+fm(c.parsed.y);
+            if(c.dataset.label==='Lower') return ` BB lower: `+fm(c.parsed.y);
+          }}
+        }
+      },
+      scales:{
+        x:{ticks:{color:'#6b7280',font:{size:9},maxTicksLimit:7,autoSkip:true},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.08)'}},
+        y:{position:'right',ticks:{color:'#6b7280',font:{size:9,family:'Space Mono'},callback:v=>fm(v,v<1?4:0)},grid:{color:'rgba(255,255,255,.04)'},border:{color:'rgba(255,255,255,.08)'}}
+      }
+    },
+    plugins:[bbPlugin]
+  });
+
+  // ── %B chart ──────────────────────────────────────────────────────────────────
+  const pbEl=document.getElementById('pbc');
+  if(PBC){PBC.destroy();PBC=null;}
+  const vpb=bb.pb.filter(v=>v!=null);
+  const pbNow=vpb[vpb.length-1];
+  document.getElementById('pbnow').textContent=pbNow!=null?pbNow.toFixed(3):'—';
+
+  const pbZones={
+    id:'pbz',
+    beforeDatasetsDraw(ch){
+      const {ctx,chartArea:ca,scales:{y}}=ch;
+      ctx.save();
+      // oversold zone
+      const y02=y.getPixelForValue(.2), y0=y.getPixelForValue(-.1);
+      ctx.fillStyle='rgba(0,212,170,.07)'; ctx.fillRect(ca.left,y02,ca.width,y0-y02);
+      // overbought zone
+      const y11=y.getPixelForValue(1.1), y08=y.getPixelForValue(.8);
+      ctx.fillStyle='rgba(240,90,90,.07)'; ctx.fillRect(ca.left,y11,ca.width,y08-y11);
+      // midline
+      ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=.5; ctx.setLineDash([4,4]);
+      ctx.beginPath(); const ym=y.getPixelForValue(.5);
+      ctx.moveTo(ca.left,ym); ctx.lineTo(ca.right,ym); ctx.stroke(); ctx.setLineDash([]);
+      ctx.restore();
+    }
+  };
+
+  PBC=new Chart(pbEl,{
+    type:'line',
+    data:{labels:lbls, datasets:[{
+      data:bb.pb,
+      borderColor:'#7c6cf8',backgroundColor:'rgba(124,108,248,.06)',
+      borderWidth:1.5,pointRadius:0,fill:false,tension:.3,spanGaps:false,
+      segment:{borderColor:c=>{const v=c.p1?.parsed?.y;return v==null?'#7c6cf8':v<=.2?'#00d4aa':v>=.8?'#f05a5a':'#7c6cf8';}}
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#181c24',borderColor:'rgba(255,255,255,.1)',borderWidth:1,callbacks:{label:c=>' %B: '+c.parsed.y.toFixed(3)}}},
+      scales:{
+        x:{display:false},
+        y:{min:-.1,max:1.1,position:'right',ticks:{color:'#6b7280',font:{size:8,family:'Space Mono'},stepSize:.5,callback:v=>v.toFixed(1)},grid:{color:'rgba(255,255,255,.04)'},border:{display:false}}
+      }
+    },
+    plugins:[pbZones]
+  });
+
+  // ── BW chart ──────────────────────────────────────────────────────────────────
+  const bwEl=document.getElementById('bwc');
+  if(BWC){BWC.destroy();BWC=null;}
+  const vbw=bb.bw.filter(v=>v!=null);
+  const bwNow=vbw[vbw.length-1];
+  const mn90=Math.min(...vbw.slice(-Math.min(90,vbw.length)));
+  const sqThr=mn90*1.06;
+  document.getElementById('bwnow').textContent=bwNow!=null?(bwNow*100).toFixed(2)+'%':'—';
+
+  BWC=new Chart(bwEl,{
+    type:'line',
+    data:{labels:lbls, datasets:[
+      {data:bb.bw,borderColor:sq?'#f5a623':'#9b7bff',backgroundColor:sq?'rgba(245,166,35,.1)':'rgba(155,123,255,.1)',borderWidth:1.5,pointRadius:0,fill:true,tension:.3,spanGaps:false},
+      {data:bb.bw.map(v=>v!=null?sqThr:null),borderColor:'rgba(245,166,35,.55)',backgroundColor:'transparent',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,spanGaps:false},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#181c24',borderColor:'rgba(255,255,255,.1)',borderWidth:1,callbacks:{label:c=>c.datasetIndex===0?' BW: '+(c.parsed.y*100).toFixed(2)+'%':' Squeeze threshold'}}},
+      scales:{
+        x:{display:false},
+        y:{position:'right',ticks:{color:'#6b7280',font:{size:8,family:'Space Mono'},callback:v=>(v*100).toFixed(1)+'%'},grid:{color:'rgba(255,255,255,.04)'},border:{display:false}}
+      }
+    }
+  });
+
+  // ── BB Stats row ──────────────────────────────────────────────────────────────
+  const vup=bb.up.filter(v=>v!=null), vmd=bb.mid.filter(v=>v!=null), vlo=bb.lo.filter(v=>v!=null);
+  const upV=vup[vup.length-1], midV=vmd[vmd.length-1], loV=vlo[vlo.length-1];
+  const pbc2=pbNow<=.2?'#00d4aa':pbNow>=.8?'#f05a5a':'#9b7bff';
+  const pbl=pbNow<=.1?'Deep oversold':pbNow<=.2?'Oversold':pbNow>=.9?'Extreme OB':pbNow>=.8?'Overbought':pbNow<.5?'Below mid':'Above mid';
+  document.getElementById('bbst').innerHTML=`
+    <div class="bbs"><div class="bbsl">%B</div><div class="bbsv" style="color:${pbc2}">${pbNow!=null?pbNow.toFixed(3):'—'} <span style="font-size:9px">${pbl}</span></div></div>
+    <div class="bbs"><div class="bbsl">Band Width</div><div class="bbsv" style="color:${sq?'#f5a623':'#9b7bff'}">${bwNow!=null?(bwNow*100).toFixed(2)+'%':'—'}${sq?' <span style="font-size:9px;color:#f5a623">SQUEEZE</span>':''}</div></div>
+    <div class="bbs"><div class="bbsl">Upper (${mult}σ)</div><div class="bbsv">${fm(upV)}</div></div>
+    <div class="bbs"><div class="bbsl">SMA-20</div><div class="bbsv">${fm(midV)}</div></div>
+    <div class="bbs"><div class="bbsl">Lower (${mult}σ)</div><div class="bbsv">${fm(loV)}</div></div>
+    <div class="bbs"><div class="bbsl">Multiplier</div><div class="bbsv" style="color:${hiSD?'#f5a623':'var(--mt)'}">${mult.toFixed(1)}σ</div></div>`;
+}
+
+// ── PATTERNS ──────────────────────────────────────────────────────────────────
+function analyze(coinId){
+  const h=hist(coinId,365), prices=h.map(x=>x.v), n=prices.length;
+  const sma=(a,k)=>a.slice(-k).reduce((x,y)=>x+y,0)/k;
+  const rsi=(a,p=14)=>{let g=0,l=0;for(let i=1;i<=p;i++){const d=a[i]-a[i-1];d>0?g+=d:l-=d;}const rs=(g/p)/((l/p)||.001);return 100-100/(1+rs);};
+  const bb=calcBB(prices,20,2.0), sq=isSqueeze(bb.bw);
+  const vpb=bb.pb.filter(v=>v!=null), vbw=bb.bw.filter(v=>v!=null);
+  const pbN=vpb[vpb.length-1], bwN=vbw[vbw.length-1];
+  const bwmn=Math.min(...vbw.slice(-Math.min(90,vbw.length)));
+  const bwPct=((bwN-bwmn)/bwmn)*100;
+  const walk=vpb.slice(-30).filter(v=>v>=.85).length;
+  const rsiV=rsi(prices), s20=sma(prices,20), s50=sma(prices,50), s200=sma(prices,200), cur=prices[n-1];
+  const vs=1.2+Math.random()*2.8;
+  return{rsiV,sq,pbN,bwN,patterns:[
+    {n:'RSI Oversold Bounce',  bb:false,str:Math.max(0,Math.min(100,(40-rsiV)*3+40)),d:`RSI at ${rsiV.toFixed(1)}. Below 40 precedes bounces ~61% of cases historically.`,sig:rsiV<30?'bull':rsiV<40?'watch':'neutral'},
+    {n:'Golden Cross 20/50',   bb:false,str:s20>s50?75+Math.random()*20:20+Math.random()*30,d:`20-day SMA ${s20>s50?'above':'below'} 50-day. ${s20>s50?'Bullish crossover confirmed.':'Death cross in effect.'}`,sig:s20>s50?'bull':'bear'},
+    {n:'Price vs 200-Day MA',  bb:false,str:cur>s200?60+Math.random()*35:15+Math.random()*30,d:`Price ${((cur/s200-1)*100).toFixed(1)}% ${cur>s200?'above':'below'} 200-day MA.`,sig:cur>s200?'bull':'bear'},
+    {n:'BB Squeeze',           bb:true, str:sq?82+Math.random()*16:Math.max(5,60-bwPct),d:sq?`SQUEEZE: BW at 90-day low (${(bwN*100).toFixed(2)}%). Explosive move expected — confirm with RSI + volume.`:`BW ${bwPct.toFixed(0)}% above 90-day min. ${bwPct<20?'Approaching squeeze.':'No squeeze.'}`,sig:sq?'squeeze':'neutral'},
+    {n:'BB %B Lower Band',     bb:true, str:Math.max(0,Math.min(100,(.2-pbN)*400+40)),d:`%B at ${pbN.toFixed(3)}. ${pbN<=.1?'Touching lower band — highest-probability BB buy zone.':pbN<=.2?'Near lower band — oversold setup.':pbN<=.4?'Lower half of bands.':'Above midline — no lower-band setup.'}`,sig:pbN<=.1?'bull':pbN<=.25?'watch':'neutral'},
+    {n:'BB Upper Band Walk',   bb:true, str:Math.min(100,walk*5+15),d:`Touched upper band ${walk} days in last 30. ${walk>=8?'Strong walk — bullish continuation.':walk>=4?'Moderate upside pressure.':'No upper-band walk.'}`,sig:walk>=8?'bull':walk>=4?'watch':'neutral'},
+    {n:'Volume Accumulation',  bb:false,str:Math.min(100,vs*30),d:`Volume ${vs.toFixed(1)}x 30-day avg. ${vs>2?'Significant accumulation.':'Moderate volume.'}`,sig:vs>2.5?'bull':vs>1.8?'watch':'neutral'},
+    {n:'Higher Low Formation', bb:false,str:40+Math.random()*50,d:`${Math.random()>.5?'Confirmed':'Developing'} higher low. Support at ${fm(cur*.88)}.`,sig:Math.random()>.4?'bull':'neutral'},
+  ]};
+}
+
+// ── RENDER MAIN ───────────────────────────────────────────────────────────────
+function renderMain(){
+  const lv=live[coin.id];
+  document.getElementById('cn').innerHTML=`${coin.name} <span style="color:var(--mt);font-size:13px;">${coin.sym}</span>`;
+  document.getElementById('cs').textContent=`${coin.type} · Rank #${coin.rank} · Market Cap: $${coin.mc}B`;
+  document.getElementById('cp').textContent=fm(lv);
+  const ce=document.getElementById('cc'); ce.textContent=pc(coin.c)+' today'; ce.className='pchg '+(coin.c>=0?'up':'dn');
+  buildCharts();
+  renderMetrics();
+  renderPatterns();
+  utf();
+}
+
+function renderMetrics(){
+  const h30=hist(coin.id,30), h365=hist(coin.id,365);
+  const lo30=Math.min(...h30.map(x=>x.v)), hi30=Math.max(...h30.map(x=>x.v));
+  const lo365=Math.min(...h365.map(x=>x.v)), hi365=Math.max(...h365.map(x=>x.v));
+  const bb=calcBB(h365.map(x=>x.v),20,hiSD?2.5:2.0);
+  const vpb=bb.pb.filter(v=>v!=null), vbw=bb.bw.filter(v=>v!=null);
+  const pbN=vpb[vpb.length-1], bwN=vbw[vbw.length-1];
+  const sq=isSqueeze(bb.bw);
+  const ms=[
+    {l:'30D High',v:fm(hi30),c:'var(--gr)'},{l:'30D Low',v:fm(lo30),c:'var(--rd)'},
+    {l:'52W High',v:fm(hi365),c:'var(--gr)'},{l:'52W Low',v:fm(lo365),c:'var(--rd)'},
+    {l:'From ATH',v:`${(((coin.p/coin.ath)-1)*100).toFixed(1)}%`,c:'var(--mt)'},
+    {l:'24h Volume',v:`$${coin.v}B`,c:'var(--tx)'},
+    {l:'%B Now',v:pbN!=null?pbN.toFixed(3):'—',c:pbN<=.2?'var(--gr)':pbN>=.8?'var(--rd)':'var(--pu)'},
+    {l:'Band Width',v:bwN!=null?(bwN*100).toFixed(2)+'%':'—',c:sq?'var(--am)':'var(--pu)'},
+  ];
+  document.getElementById('mg').innerHTML=ms.map(m=>`<div class="mc"><div class="ml">${m.l}</div><div class="mv" style="color:${m.c}">${m.v}</div></div>`).join('');
+}
+
+function renderPatterns(){
+  const {patterns,rsiV,sq,pbN,bwN}=analyze(coin.id);
+  document.getElementById('pg').innerHTML=patterns.map(p=>{
+    const col=p.sig==='bull'?'#00d4aa':p.sig==='bear'?'#f05a5a':p.sig==='watch'?'#f5a623':p.sig==='squeeze'?'#9b7bff':'#6b7280';
+    return `<div class="pc ${p.bb?'bbc':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+        <div class="pn">${p.bb?'<span style="color:#9b7bff;font-size:8px;margin-right:2px;">BB</span>':''}${p.n}</div>
+        <span class="sig ${p.sig}">${p.sig==='squeeze'?'SQUEEZE':p.sig.toUpperCase()}</span>
+      </div>
+      <div class="pd">${p.d}</div>
+      <div class="pbar"><div class="pbg"><div class="pbf" style="width:${p.str.toFixed(0)}%;background:${col}"></div></div><span style="font-family:var(--mono);font-size:9px;color:var(--mt);min-width:22px;">${Math.round(p.str)}%</span></div>
+    </div>`;
+  }).join('');
+  const bull=patterns.filter(p=>p.sig==='bull').length;
+  const watch=patterns.filter(p=>p.sig==='watch').length;
+  const sqc=patterns.filter(p=>p.sig==='squeeze').length;
+  const score=Math.round((bull+watch*.5+sqc*.3)/patterns.length*100);
+  const ov=score>=70?'Strong Upswing Signal':score>=50?'Moderate Bullish Setup':score>=30?'Neutral / Watch':'Bearish Setup';
+  const sc=score>=70?'#00d4aa':score>=50?'#f5a623':score>=30?'#6b7280':'#f05a5a';
+  document.getElementById('sc').innerHTML=`
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+      <div style="font-size:34px;font-family:var(--mono);font-weight:700;color:${sc}">${score}</div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:${sc}">${ov}</div>
+        <div style="font-size:10px;color:var(--mt);margin-top:3px;">${bull} bullish · ${watch} watch · ${sqc} squeeze · RSI ${rsiV.toFixed(1)}</div>
+        <div style="font-size:10px;color:var(--mt);">%B ${pbN.toFixed(3)} · BW ${(bwN*100).toFixed(2)}%${sq?' · <span style="color:#9b7bff">SQUEEZE</span>':''}</div>
+      </div>
+      <div style="margin-left:auto;">
+        <div style="font-size:10px;color:var(--mt);margin-bottom:3px;">Composite</div>
+        <div style="width:140px;height:5px;background:var(--bd);border-radius:3px;overflow:hidden;"><div style="width:${score}%;height:100%;background:${sc};transition:width .5s"></div></div>
+      </div>
+    </div>`;
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function renderSide(){
+  document.getElementById('sp-market').innerHTML=COINS.map(c=>`
+    <div class="crow ${coin.id===c.id?'sel':''}" onclick="selCoin('${c.id}')">
+      <div class="cico" style="background:${c.bg};color:${c.col}">${c.sym.slice(0,3)}</div>
+      <div style="flex:1;min-width:0;"><div class="cnm">${c.name}</div><div class="csy">${c.sym} · #${c.rank}</div></div>
+      <div class="cpc"><div class="cpr">${fm(live[c.id])}</div><div class="cch ${c.c>=0?'up':'dn'}">${pc(c.c)}</div></div>
+    </div>`).join('');
+
+  document.getElementById('sp-signals').innerHTML=COINS.map(c=>{
+    const h=hist(c.id,90), bb=calcBB(h.map(x=>x.v),20,2.0), sq=isSqueeze(bb.bw,60);
+    const vpb=bb.pb.filter(v=>v!=null), pb=vpb[vpb.length-1];
+    const sig=sq?'squeeze':pb<=.2?'bull':pb>=.8?'bear':'neutral';
+    const lbl=sq?'Squeeze':pb<=.2?'Oversold':pb>=.8?'Overbought':'Neutral';
+    return `<div class="crow" onclick="selCoin('${c.id}')">
+      <div class="cico" style="background:${c.bg};color:${c.col}">${c.sym.slice(0,3)}</div>
+      <div style="flex:1;"><div class="cnm">${c.name}</div><div style="margin-top:3px;"><span class="sig ${sig}">${lbl}</span></div></div>
+      <div style="text-align:right;font-family:var(--mono);font-size:10px;">
+        <div style="color:var(--mt);">%B ${pb!=null?pb.toFixed(2):'—'}</div>
+        ${sq?'<div style="font-size:9px;color:#f5a623;">⚡ squeeze</div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── TRADE ─────────────────────────────────────────────────────────────────────
+function utf(){
+  const s=document.getElementById('tco');
+  s.innerHTML=COINS.map(c=>`<option value="${c.id}"${c.id===coin.id?' selected':''}>${c.sym} — ${c.name}</option>`).join('');
+  const ci=COINS.find(c=>c.id===s.value), pr=live[s.value];
+  document.getElementById('tpr').value=fm(pr);
+  const amt=parseFloat(document.getElementById('tam').value)||0;
+  document.getElementById('tun').value=(amt/pr).toFixed(6);
+  document.getElementById('ttn').textContent=`${ci.name} (${ci.sym})`;
+  const hd=port[s.value]?port[s.value].units:0;
+  document.getElementById('th').innerHTML=`<span>Holdings: <strong style="color:var(--tx)">${hd.toFixed(6)} ${ci.sym}</strong></span><span>Value: <strong style="color:var(--tx)">${fm(hd*pr)}</strong></span><span>Avg buy: <strong style="color:var(--tx)">${port[s.value]?fm(port[s.value].avg):'—'}</strong></span>`;
+}
+document.getElementById('tam').addEventListener('input',utf);
+document.getElementById('tco').addEventListener('change',utf);
+
+function exTrade(){
+  const cid=document.getElementById('tco').value, action=document.getElementById('tac').value;
+  const ci=COINS.find(c=>c.id===cid), pr=live[cid];
+  const amt=parseFloat(document.getElementById('tam').value), units=amt/pr;
+  if(!amt||amt<10){toast('Minimum $10','err');return;}
+  if(action==='sell'&&(!port[cid]||port[cid].units<units)){toast(`Insufficient ${ci.sym}`,'err');return;}
+  const tr={id:Date.now(),date:new Date().toLocaleString(),coin:ci.sym,name:ci.name,action,units:+units.toFixed(6),pr,amt,col:ci.col};
+  ledger.unshift(tr);
+  if(!port[cid]) port[cid]={units:0,cost:0,avg:0,sym:ci.sym,name:ci.name,col:ci.col};
+  if(action==='buy'){port[cid].units+=units;port[cid].cost+=amt;port[cid].avg=port[cid].cost/port[cid].units;}
+  else{tr.pnl=(pr-port[cid].avg)*units;port[cid].units-=units;port[cid].cost=port[cid].avg*port[cid].units;if(port[cid].units<.000001)delete port[cid];}
+  toast(`${action.toUpperCase()} ${units.toFixed(4)} ${ci.sym} @ ${fm(pr)}`,'ok');
+  saveState();
+  renderLedger();renderPort();utf();
+}
+
+function renderLedger(){
+  const el=document.getElementById('led');
+  if(!ledger.length){el.innerHTML='<div class="empty">No trades yet — use Simulate Trade or Auto Trader to get started.</div>';return;}
+  el.innerHTML=`<table class="tbl"><thead><tr><th>Date</th><th>Coin</th><th>Type</th><th>Source</th><th>Units</th><th>Price</th><th>Total</th><th>P&L</th><th>Reason</th></tr></thead><tbody>
+  ${ledger.map(t=>`<tr>
+    <td style="color:var(--mt);font-size:10px;white-space:nowrap;">${t.date}</td>
+    <td><span style="color:${t.col};font-weight:700">${t.coin}</span></td>
+    <td style="color:${t.action==='buy'?'var(--gr)':'var(--rd)'};font-weight:600;">${t.action.toUpperCase()}</td>
+    <td><span style="font-size:9px;padding:1px 5px;border-radius:3px;background:${t.auto?'rgba(155,123,255,.15)':'rgba(107,114,128,.12)'};color:${t.auto?'var(--pu)':'var(--mt)'};">${t.auto?'AUTO':'MANUAL'}</span>${t.auto&&t.risk?` <span style="font-size:8px;padding:1px 4px;border-radius:2px;background:${t.risk==='low'?'rgba(0,212,170,.12)':t.risk==='high'?'rgba(240,90,90,.12)':'rgba(245,166,35,.12)'};color:${t.risk==='low'?'var(--gr)':t.risk==='high'?'var(--rd)':'var(--am)'};">${t.risk.toUpperCase()}</span>`:''}</td>
+    <td>${t.units.toFixed(5)}</td>
+    <td>${fm(t.pr)}</td>
+    <td>${fm(t.amt)}</td>
+    <td class="${t.pnl!=null?(t.pnl>=0?'pnlp':'pnln'):''}">${t.pnl!=null?(t.pnl>=0?'+':'')+fm(Math.abs(t.pnl)):'—'}</td>
+    <td style="font-size:10px;color:var(--mt);">${t.reason||'—'}</td>
+  </tr>`).join('')}
+  </tbody></table>`;
+}
+
+function renderPort(){
+  const hd=Object.entries(port).map(([id,p])=>{const pr=live[id],val=p.units*pr,pnl=val-p.cost;return{id,...p,pr,val,pnl,pp:(pnl/p.cost)*100};}).sort((a,b)=>b.val-a.val);
+  const tv=hd.reduce((s,h)=>s+h.val,0), tc=hd.reduce((s,h)=>s+h.cost,0);
+  document.getElementById('ps').innerHTML=`
+    <div class="pcard"><div class="pval">${fm(tv)}</div><div class="plbl">Portfolio Value</div></div>
+    <div class="pcard"><div class="pval ${tv-tc>=0?'up':'dn'}">${tv-tc>=0?'+':''}${fm(Math.abs(tv-tc))}</div><div class="plbl">Total P&L</div></div>
+    <div class="pcard"><div class="pval">${ledger.length}</div><div class="plbl">Total Trades</div></div>`;
+  const pe=document.getElementById('ph');
+  if(!hd.length){pe.innerHTML='<div class="empty">No holdings yet.</div>';return;}
+  pe.innerHTML=`<table class="tbl"><thead><tr><th>Asset</th><th>Units</th><th>Avg</th><th>Price</th><th>Value</th><th>P&L</th><th>P&L%</th></tr></thead><tbody>
+  ${hd.map(h=>`<tr><td><span style="color:${h.col};font-weight:700">${h.sym}</span> <span style="color:var(--mt)">${h.name}</span></td>
+  <td>${h.units.toFixed(5)}</td><td>${fm(h.avg)}</td><td>${fm(h.pr)}</td><td>${fm(h.val)}</td>
+  <td class="${h.pnl>=0?'pnlp':'pnln'}">${h.pnl>=0?'+':''}${fm(Math.abs(h.pnl))}</td>
+  <td class="${h.pp>=0?'pnlp':'pnln'}">${pc(h.pp)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+// ── AUTO TRADER ENGINE ────────────────────────────────────────────────────────
+let autoInterval=null, autoRunning=false;
+// Track realized P&L per coin across all trades
+const realizedPnL={}; // {coinId: {gains:[], sym, col}}
+// Price momentum tracker (last N prices per coin for trend detection)
+const priceHistory={};
+COINS.forEach(c=>{priceHistory[c.id]=[];});
+
+// ── RISK PROFILES ─────────────────────────────────────────────────────────────
+// Each profile defines thresholds, position limits, sell strategy and signal weights
+const RISK_PROFILES={
+  low:{
+    label:'LOW',
+    desc:'Conservative · High conviction only · Protects capital',
+    badgeBg:'rgba(0,212,170,.08)', badgeBd:'rgba(0,212,170,.3)', badgeCol:'#00d4aa',
+    detailBd:'rgba(0,212,170,.25)',
+    buyThresh:68,        // must score very high to buy
+    sellThresh:55,       // exit quickly on any weakness
+    maxPositions:3,      // hold max 3 coins at once
+    sellFraction:1.0,    // sell 100% of position (full exit, no partial)
+    stopLossPct:-3,      // hard stop-loss at -3% from avg
+    takeProfitPct:8,     // take profit at +8%
+    momentumSellThresh:-1.0,   // sell on slight downward momentum
+    pbOversoldBuy:0.15,        // only buy deep oversold (%B ≤ 0.15)
+    pbOverboughtSell:0.78,     // sell earlier on overbought
+    rsiOversoldBuy:32,
+    rsiOverboughtSell:65,
+    buyLabel:'Score ≥ 68', sellLabel:'Score ≥ 55', stratLabel:'Full exit', maxLabel:'3 coins',
+  },
+  med:{
+    label:'MED',
+    desc:'Balanced · Moderate signals accepted · Standard sizing',
+    badgeBg:'rgba(245,166,35,.08)', badgeBd:'rgba(245,166,35,.3)', badgeCol:'#f5a623',
+    detailBd:'rgba(245,166,35,.25)',
+    buyThresh:52,
+    sellThresh:48,
+    maxPositions:6,
+    sellFraction:1.0,
+    stopLossPct:-6,
+    takeProfitPct:15,
+    momentumSellThresh:-1.5,
+    pbOversoldBuy:0.22,
+    pbOverboughtSell:0.82,
+    rsiOversoldBuy:38,
+    rsiOverboughtSell:68,
+    buyLabel:'Score ≥ 52', sellLabel:'Score ≥ 48', stratLabel:'Full exit', maxLabel:'6 coins',
+  },
+  high:{
+    label:'HIGH',
+    desc:'Aggressive · Trades early signals · Pursues larger gains',
+    badgeBg:'rgba(240,90,90,.08)', badgeBd:'rgba(240,90,90,.3)', badgeCol:'#f05a5a',
+    detailBd:'rgba(240,90,90,.25)',
+    buyThresh:35,        // buy on weaker signals
+    sellThresh:38,       // hold longer, looser sell trigger
+    maxPositions:12,     // spread across many coins
+    sellFraction:0.5,    // sell only 50% — ride the trend
+    stopLossPct:-12,     // wider stop-loss
+    takeProfitPct:30,    // hold for bigger gains
+    minMovePct:5,        // never sell unless price moved ≥ 5% from avg (either direction)
+    momentumSellThresh:-2.5,
+    pbOversoldBuy:0.30,  // buy even mid-band on other signals
+    pbOverboughtSell:0.90,
+    rsiOversoldBuy:45,
+    rsiOverboughtSell:75,
+    buyLabel:'Score ≥ 35', sellLabel:'Score ≥ 38', stratLabel:'50% partial', maxLabel:'12 coins',
+  }
+};
+let riskLevel='low';
+
+function setRisk(level, el){
+  riskLevel=level;
+  const p=RISK_PROFILES[level];
+  // Update button styles
+  ['low','med','high'].forEach(l=>{
+    const btn=document.getElementById('rl-'+l);
+    const pr=RISK_PROFILES[l];
+    if(l===level){
+      btn.style.background=pr.badgeBg.replace('.08','.25');
+      btn.style.color=pr.badgeCol;
+    } else {
+      btn.style.background='var(--bg3)';
+      btn.style.color='var(--mt)';
+    }
+  });
+  // Update badge
+  const badge=document.getElementById('riskBadge');
+  badge.style.background=p.badgeBg; badge.style.borderColor=p.badgeBd; badge.style.color=p.badgeCol;
+  badge.textContent=p.desc;
+  // Update detail strip
+  document.getElementById('riskDetail').style.borderColor=p.detailBd;
+  document.getElementById('rd-buy').textContent=p.buyLabel;
+  document.getElementById('rd-sell').textContent=p.sellLabel;
+  document.getElementById('rd-sellstrat').textContent=p.stratLabel;
+  document.getElementById('rd-maxpos').textContent=p.maxLabel;
+}
+
+function getSignalScore(coinId){
+  const p=RISK_PROFILES[riskLevel];
+  const h=hist(coinId,90), prices=h.map(x=>x.v);
+  const bb=calcBB(prices,20,2.0), sq=isSqueeze(bb.bw,60);
+  const vpb=bb.pb.filter(v=>v!=null);
+  const pbN=vpb[vpb.length-1]??0.5;
+  const rsi=(a,per=14)=>{let g=0,l=0;for(let i=1;i<=per;i++){const d=a[i]-a[i-1];d>0?g+=d:l-=d;}const rs=(g/per)/((l/per)||.001);return 100-100/(1+rs);};
+  const rsiV=rsi(prices);
+  const sma=(a,k)=>a.slice(-k).reduce((x,y)=>x+y,0)/k;
+  const s20=sma(prices,20), s50=sma(prices,50);
+  const ph=priceHistory[coinId];
+  const momentum=ph.length>=5?(ph[ph.length-1]-ph[ph.length-5])/ph[ph.length-5]*100:0;
+
+  let buyScore=0, sellScore=0, reasons=[];
+
+  // ── Buy signals (weighted by risk profile) ──
+  if(pbN<=p.pbOversoldBuy){
+    const pts=pbN<=0.10?40:pbN<=0.15?30:20;
+    buyScore+=pts; reasons.push(`%B ${pbN<=0.10?'deep ':''}oversold`);
+  }
+  if(sq){buyScore+=22;reasons.push('BB squeeze');}
+  if(rsiV<p.rsiOversoldBuy){
+    const pts=rsiV<25?30:rsiV<30?22:12;
+    buyScore+=pts; reasons.push(`RSI ${rsiV.toFixed(0)}`);
+  }
+  if(s20>s50){buyScore+=14;reasons.push('golden cross');}
+  if(momentum>1.0 && riskLevel==='high'){buyScore+=15;reasons.push(`mom +${momentum.toFixed(1)}%`);}
+  if(momentum>0.5 && riskLevel!=='low'){buyScore+=8;}
+
+  // ── Sell signals ──
+  if(pbN>=p.pbOverboughtSell){
+    const pts=pbN>=0.92?40:pbN>=0.85?28:18;
+    sellScore+=pts; reasons.push(`%B overbought`);
+  }
+  if(rsiV>p.rsiOverboughtSell){
+    const pts=rsiV>80?35:rsiV>72?22:12;
+    sellScore+=pts; reasons.push(`RSI ${rsiV.toFixed(0)}`);
+  }
+  if(momentum<p.momentumSellThresh){sellScore+=28;reasons.push(`down ${momentum.toFixed(1)}%`);}
+  else if(momentum<-0.4 && riskLevel!=='high'){sellScore+=10;reasons.push('slight downtrend');}
+  if(s20<s50){sellScore+=10;reasons.push('death cross');}
+
+  // Stop-loss / take-profit checks (applied in autoTick against real position)
+  const action=buyScore>=p.buyThresh?'buy':sellScore>=p.sellThresh?'sell':'hold';
+  return{buyScore,sellScore,action,reasons,rsiV,pbN,sq,momentum};
+}
+
+function autoTick(){
+  const p=RISK_PROFILES[riskLevel];
+  const baseAmt=parseFloat(document.getElementById('atAmt').value)||1000;
+  // High risk: size up by 1.5x; low risk: size down to 0.75x
+  const amt=riskLevel==='high'?baseAmt*1.5:riskLevel==='low'?baseAmt*0.75:baseAmt;
+  const scanResults=[];
+  const now=new Date().toLocaleString();
+  const openPositions=Object.keys(port).length;
+
+  COINS.forEach(ci=>{
+    priceHistory[ci.id].push(live[ci.id]);
+    if(priceHistory[ci.id].length>20) priceHistory[ci.id].shift();
+    const sig=getSignalScore(ci.id);
+    scanResults.push({ci,sig});
+
+    // ── BUY logic ──
+    if(sig.action==='buy' && sig.buyScore>=p.buyThresh && openPositions<p.maxPositions && !port[ci.id]){
+      const units=amt/live[ci.id];
+      const tr={id:Date.now()+Math.random(),date:now,coin:ci.sym,name:ci.name,action:'buy',
+        units:+units.toFixed(6),pr:live[ci.id],amt,col:ci.col,auto:true,risk:riskLevel,
+        reason:sig.reasons.slice(0,2).join(', '),score:sig.buyScore};
+      ledger.unshift(tr);
+      if(!port[ci.id]) port[ci.id]={units:0,cost:0,avg:0,sym:ci.sym,name:ci.name,col:ci.col};
+      port[ci.id].units+=units;
+      port[ci.id].cost+=amt;
+      port[ci.id].avg=port[ci.id].cost/port[ci.id].units;
+      if(!realizedPnL[ci.id]) realizedPnL[ci.id]={gains:[],sym:ci.sym,col:ci.col,totalBought:0,totalSold:0};
+      realizedPnL[ci.id].totalBought+=amt;
+    }
+    // ── SELL logic ──
+    else if(port[ci.id] && port[ci.id].units>0.000001){
+      const curPrice=live[ci.id];
+      const pnlPct=((curPrice-port[ci.id].avg)/port[ci.id].avg)*100;
+      const absPnlPct=Math.abs(pnlPct);
+      // HIGH risk: never sell unless price has moved ≥ minMovePct from entry (either direction)
+      const minMoveCleared=!p.minMovePct || absPnlPct>=p.minMovePct;
+      const shouldSell=sig.action==='sell' && sig.sellScore>=p.sellThresh && minMoveCleared;
+      const stopHit=pnlPct<=p.stopLossPct;   // stop-loss always overrides minMove
+      const tpHit=pnlPct>=p.takeProfitPct;   // take-profit always overrides minMove
+      const reason=stopHit?`stop-loss ${pnlPct.toFixed(1)}%`:tpHit?`take-profit +${pnlPct.toFixed(1)}%`:sig.reasons.slice(0,2).join(', ');
+
+      if(shouldSell||stopHit||tpHit){
+        const sellUnits=port[ci.id].units*p.sellFraction;
+        const proceeds=sellUnits*curPrice;
+        const pnl=(curPrice-port[ci.id].avg)*sellUnits;
+        const tr={id:Date.now()+Math.random(),date:now,coin:ci.sym,name:ci.name,action:'sell',
+          units:+sellUnits.toFixed(6),pr:curPrice,amt:proceeds,col:ci.col,auto:true,risk:riskLevel,
+          reason,score:sig.sellScore,pnl};
+        ledger.unshift(tr);
+        if(!realizedPnL[ci.id]) realizedPnL[ci.id]={gains:[],sym:ci.sym,col:ci.col,totalBought:0,totalSold:0};
+        realizedPnL[ci.id].gains.push({date:now,pnl,price:curPrice});
+        realizedPnL[ci.id].totalSold+=proceeds;
+        if(p.sellFraction>=1.0){
+          delete port[ci.id];
+        } else {
+          port[ci.id].units-=sellUnits;
+          port[ci.id].cost=port[ci.id].avg*port[ci.id].units;
+        }
+      }
+    }
+  });
+
+  const buys=scanResults.filter(r=>r.sig.action==='buy'&&r.sig.buyScore>=p.buyThresh&&!port[r.ci.id]).length;
+  const sells=scanResults.filter(r=>r.sig.action==='sell'&&r.sig.sellScore>=p.sellThresh&&port[r.ci.id]).length;
+  const rCol=riskLevel==='low'?'var(--gr)':riskLevel==='med'?'var(--am)':'var(--rd)';
+  document.getElementById('atStatus').innerHTML=
+    `<span style="color:var(--gr);">● RUNNING</span> &nbsp;|&nbsp; `+
+    `Risk: <strong style="color:${rCol};">${riskLevel.toUpperCase()}</strong> &nbsp;|&nbsp; `+
+    `Positions: <strong style="color:var(--tx);">${Object.keys(port).length}/${p.maxPositions}</strong> &nbsp;|&nbsp; `+
+    `<span style="color:var(--gr);">${buys} buy${buys!==1?'s':''}</span> &nbsp;|&nbsp; `+
+    `<span style="color:var(--rd);">${sells} sell${sells!==1?'s':''}</span> &nbsp;|&nbsp; `+
+    `Last scan: <strong style="color:var(--tx);">${new Date().toLocaleTimeString()}</strong> &nbsp;|&nbsp; `+
+    `Auto trades: <strong style="color:var(--tx);">${ledger.filter(t=>t.auto).length}</strong>`;
+
+  renderAutoGrid(scanResults);
+  saveState();
+  renderLedger();
+  renderPort();
+  if(document.getElementById('tp-pnl').classList.contains('on')) renderPnL();
+}
+
+function renderAutoGrid(results){
+  if(!document.getElementById('atGrid')) return;
+  const p=RISK_PROFILES[riskLevel];
+  document.getElementById('atGrid').innerHTML=results.map(({ci,sig})=>{
+    const isBuy=sig.action==='buy'&&sig.buyScore>=p.buyThresh;
+    const isSell=sig.action==='sell'&&sig.sellScore>=p.sellThresh;
+    const cls=isBuy?'buy-sig':isSell?'sell-sig':sig.sq?'sq-sig':'';
+    const score=sig.action==='buy'?sig.buyScore:sig.sellScore;
+    const scoreCol=isBuy?'#00d4aa':isSell?'#f05a5a':'#9b7bff';
+    const held=port[ci.id]?fm(port[ci.id].units*live[ci.id]):'—';
+    const pnlPct=port[ci.id]?((live[ci.id]-port[ci.id].avg)/port[ci.id].avg*100):null;
+    return `<div class="at-card ${cls}">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:22px;height:22px;border-radius:50%;background:${ci.bg};color:${ci.col};display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:700;">${ci.sym.slice(0,3)}</div>
+          <span style="font-weight:600;font-size:12px;">${ci.sym}</span>
+        </div>
+        <span class="sig ${isBuy?'bull':isSell?'bear':sig.sq?'squeeze':'neutral'}" style="font-size:8px;">
+          ${isBuy?'BUY':isSell?'SELL':sig.sq?'WATCH':'HOLD'}
+        </span>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--mt);">${fm(live[ci.id])} &nbsp;|&nbsp; RSI ${sig.rsiV.toFixed(0)} &nbsp;|&nbsp; %B ${sig.pbN.toFixed(2)}</div>
+      <div style="font-size:10px;color:var(--mt);">Held: ${held}${pnlPct!=null?` &nbsp;|&nbsp; <span style="color:${pnlPct>=0?'var(--gr)':'var(--rd)'}">${pnlPct>=0?'+':''}${pnlPct.toFixed(1)}%</span>`:''} &nbsp;|&nbsp; Mom: <span style="${sig.momentum>=0?'color:var(--gr)':'color:var(--rd)'}">${sig.momentum>=0?'+':''}${sig.momentum.toFixed(2)}%</span></div>
+      <div class="at-score-bar"><div class="at-score-fill" style="width:${Math.min(score,100)}%;background:${scoreCol};"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1px;">
+        <div style="font-size:9px;color:var(--mt);">${sig.reasons.slice(0,2).join(' · ')||'no signal'}</div>
+        <div style="font-size:8px;font-family:var(--mono);color:${RISK_PROFILES[riskLevel].badgeCol};opacity:.7;">${riskLevel.toUpperCase()}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('atRecent').innerHTML=ledger.filter(t=>t.auto).slice(0,10).map(t=>{
+    const rCol=t.risk==='low'?'#00d4aa':t.risk==='high'?'#f05a5a':'#f5a623';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid var(--bd);font-size:11px;flex-wrap:wrap;">
+      <span style="color:var(--mt);font-size:10px;min-width:130px;">${t.date}</span>
+      <span style="color:${t.col};font-weight:700;min-width:40px;">${t.coin}</span>
+      <span style="color:${t.action==='buy'?'var(--gr)':'var(--rd)'};font-family:var(--mono);min-width:32px;">${t.action.toUpperCase()}</span>
+      <span style="font-size:8px;padding:1px 5px;border-radius:2px;background:${rCol}22;color:${rCol};font-family:var(--mono);font-weight:700;">${(t.risk||'med').toUpperCase()}</span>
+      <span style="font-family:var(--mono);color:var(--mt);">${t.units.toFixed(4)} @ ${fm(t.pr)}</span>
+      <span style="font-family:var(--mono);color:var(--tx);">${fm(t.amt)}</span>
+      ${t.pnl!=null?`<span style="font-family:var(--mono);color:${t.pnl>=0?'var(--gr)':'var(--rd)'};">${t.pnl>=0?'+':''}${fm(Math.abs(t.pnl))}</span>`:''}
+      <span style="color:var(--mt);font-size:10px;">${t.reason||''}</span>
+    </div>`;
+  }).join('')||'<div class="empty">No auto trades yet.</div>';
+}
+
+function startAutoTrader(){
+  if(autoRunning) return;
+  autoRunning=true;
+  const btn=document.getElementById('atBtn');
+  btn.textContent='PAUSE';
+  btn.style.background='var(--am)';
+  btn.style.color='#000';
+  const ms=parseInt(document.getElementById('atInt').value)||10000;
+  autoTick();
+  autoInterval=setInterval(autoTick, ms);
+}
+
+function toggleAutoTrader(){
+  if(autoRunning){
+    clearInterval(autoInterval); autoInterval=null; autoRunning=false;
+    const btn=document.getElementById('atBtn');
+    btn.textContent='RESUME';
+    btn.style.background='var(--gr)';
+    btn.style.color='#000';
+    document.getElementById('atStatus').innerHTML='<span style="color:var(--am);">⏸ Auto trader paused. Press RESUME to continue.</span>';
+  } else {
+    startAutoTrader();
+  }
+}
+
+// ── P&L SUMMARY ───────────────────────────────────────────────────────────────
+function renderPnL(){
+  // Total realized P&L from closed trades
+  const closedTrades=ledger.filter(t=>t.pnl!=null);
+  const totalRealized=closedTrades.reduce((s,t)=>s+t.pnl,0);
+  // Unrealized from open positions
+  const holdings=Object.entries(port).map(([id,p])=>{
+    const val=p.units*live[id], pnl=val-p.cost;
+    return{id,sym:p.sym,col:p.col,name:p.name,val,pnl,pp:(pnl/p.cost)*100,cost:p.cost};
+  });
+  const totalUnrealized=holdings.reduce((s,h)=>s+h.pnl,0);
+  const totalValue=holdings.reduce((s,h)=>s+h.val,0);
+  const totalInvested=holdings.reduce((s,h)=>s+h.cost,0)+closedTrades.filter(t=>t.action==='buy').reduce((s,t)=>s+t.amt,0);
+  const autoTrades=ledger.filter(t=>t.auto).length;
+  const winRate=closedTrades.length?Math.round(closedTrades.filter(t=>t.pnl>0).length/closedTrades.length*100):0;
+
+  document.getElementById('pnlSumm').innerHTML=`
+    <div class="pnl-big">
+      <div class="pnl-bc">
+        <div class="pnl-bv">${fm(totalValue)}</div>
+        <div class="pnl-bl">Portfolio Value</div>
+      </div>
+      <div class="pnl-bc">
+        <div class="pnl-bv" style="color:${totalRealized+totalUnrealized>=0?'var(--gr)':'var(--rd)'}">
+          ${totalRealized+totalUnrealized>=0?'+':''}${fm(Math.abs(totalRealized+totalUnrealized))}
+        </div>
+        <div class="pnl-bl">Total P&L (All)</div>
+      </div>
+      <div class="pnl-bc">
+        <div class="pnl-bv" style="color:${totalRealized>=0?'var(--gr)':'var(--rd)'}">
+          ${totalRealized>=0?'+':''}${fm(Math.abs(totalRealized))}
+        </div>
+        <div class="pnl-bl">Realized P&L</div>
+      </div>
+      <div class="pnl-bc">
+        <div class="pnl-bv" style="color:${totalUnrealized>=0?'var(--gr)':'var(--rd)'}">
+          ${totalUnrealized>=0?'+':''}${fm(Math.abs(totalUnrealized))}
+        </div>
+        <div class="pnl-bl">Unrealized P&L</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+      <div class="pnl-bc"><div class="pnl-bv">${ledger.length}</div><div class="pnl-bl">Total Trades</div></div>
+      <div class="pnl-bc"><div class="pnl-bv" style="color:var(--pu)">${autoTrades}</div><div class="pnl-bl">Auto Trades</div></div>
+      <div class="pnl-bc"><div class="pnl-bv" style="color:${winRate>=50?'var(--gr)':'var(--rd)'}">${winRate}%</div><div class="pnl-bl">Win Rate</div></div>
+      <div class="pnl-bc"><div class="pnl-bv">${closedTrades.length}</div><div class="pnl-bl">Closed Trades</div></div>
+    </div>`;
+
+  // Per-coin P&L — combine realized + unrealized
+  const coinMap={};
+  // Realized from closed trades
+  closedTrades.forEach(t=>{
+    const ci=COINS.find(c=>c.sym===t.coin);
+    if(!ci) return;
+    if(!coinMap[ci.id]) coinMap[ci.id]={sym:t.coin,col:t.col,realized:0,unrealized:0,trades:0};
+    coinMap[ci.id].realized+=t.pnl;
+    coinMap[ci.id].trades++;
+  });
+  // Unrealized from open positions
+  holdings.forEach(h=>{
+    if(!coinMap[h.id]) coinMap[h.id]={sym:h.sym,col:h.col,realized:0,unrealized:0,trades:0};
+    coinMap[h.id].unrealized=h.pnl;
+  });
+
+  const coinRows=Object.entries(coinMap).map(([id,d])=>({...d,total:d.realized+d.unrealized})).sort((a,b)=>b.total-a.total);
+  const maxAbs=Math.max(...coinRows.map(r=>Math.abs(r.total)),1);
+
+  document.getElementById('pnlCoins').innerHTML=coinRows.length?`
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:6px;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:100px 1fr 90px 90px 90px 50px;gap:0;padding:7px 12px;border-bottom:1px solid var(--bd);font-size:9px;color:var(--mt);text-transform:uppercase;letter-spacing:.06em;">
+        <span>Coin</span><span>P&L Bar</span><span>Realized</span><span>Unrealized</span><span>Total</span><span>Trades</span>
+      </div>
+      ${coinRows.map(r=>{
+        const pct=Math.abs(r.total)/maxAbs*100;
+        const col=r.total>=0?'var(--gr)':'var(--rd)';
+        return `<div style="display:grid;grid-template-columns:100px 1fr 90px 90px 90px 50px;gap:0;padding:9px 12px;border-bottom:1px solid var(--bd);align-items:center;font-size:11px;">
+          <span style="color:${r.col};font-family:var(--mono);font-weight:700;">${r.sym}</span>
+          <div class="pnl-bar-wrap"><div class="pnl-bar-fill" style="width:${pct.toFixed(1)}%;background:${col};"></div></div>
+          <span style="font-family:var(--mono);color:${r.realized>=0?'var(--gr)':'var(--rd)'};">${r.realized>=0?'+':''}${fm(Math.abs(r.realized))}</span>
+          <span style="font-family:var(--mono);color:${r.unrealized>=0?'var(--gr)':'var(--rd)'};">${r.unrealized>=0?'+':''}${fm(Math.abs(r.unrealized))}</span>
+          <span style="font-family:var(--mono);font-weight:600;color:${col};">${r.total>=0?'+':''}${fm(Math.abs(r.total))}</span>
+          <span style="font-family:var(--mono);color:var(--mt);">${r.trades}</span>
+        </div>`;
+      }).join('')}
+    </div>`:'<div class="empty">No P&L data yet — execute some trades or start the Auto Trader.</div>';
+
+  // Realized trade history (only sells with P&L)
+  document.getElementById('pnlRealized').innerHTML=closedTrades.length?`
+    <table class="tbl"><thead><tr><th>Date</th><th>Coin</th><th>Units Sold</th><th>Sell Price</th><th>Proceeds</th><th>P&L</th><th>Source</th></tr></thead>
+    <tbody>${closedTrades.map(t=>`<tr>
+      <td style="color:var(--mt);font-size:10px;">${t.date}</td>
+      <td><span style="color:${t.col};font-weight:700">${t.coin}</span></td>
+      <td>${t.units.toFixed(5)}</td>
+      <td>${fm(t.pr)}</td>
+      <td>${fm(t.amt)}</td>
+      <td class="${t.pnl>=0?'pnlp':'pnln'}">${t.pnl>=0?'+':''}${fm(Math.abs(t.pnl))}</td>
+      <td><span style="font-size:9px;color:${t.auto?'var(--pu)':'var(--mt)'};">${t.auto?'AUTO':'MANUAL'}</span></td>
+    </tr>`).join('')}</tbody></table>`
+    :'<div class="empty">No realized trades yet.</div>';
+}
+
+
+function buildTk(){
+  document.getElementById('tk').innerHTML=[...COINS,...COINS].map(c=>`
+    <div class="tki" onclick="selCoin('${c.id}')">
+      <span style="font-weight:700">${c.sym}</span>
+      <span style="color:var(--mt)">${fm(live[c.id])}</span>
+      <span class="${c.c>=0?'up':'dn'}">${pc(c.c)}</span>
+    </div>`).join('');
+}
+
+// ── CLOCK TICK ────────────────────────────────────────────────────────────────
+let cgPollInterval = null;
+function clockTick(){
+  document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function selCoin(id){
+  coin=COINS.find(c=>c.id===id);
+  if(liveRefreshInterval){clearInterval(liveRefreshInterval);liveRefreshInterval=null;}
+  renderSide();renderMain();
+  // Load real history for this coin in the background
+  if(!isIntraday(tf)) loadRealHist(coin.id, tfd(tf));
+}
+function setTF(t,btn){
+  tf=t;
+  document.querySelectorAll('.btn:not(.bbn)').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(liveRefreshInterval){clearInterval(liveRefreshInterval);liveRefreshInterval=null;}
+  buildCharts(); // draw immediately with cached/simulated data
+  // Then asynchronously fetch real history and redraw
+  if(!isIntraday(tf)){
+    loadRealHist(coin.id, tfd(tf));
+  }
+  if(isIntraday(tf)){
+    const ms=TF_CFG[tf].ms;
+    const refreshMs=Math.min(Math.max(ms,1000),15000);
+    liveRefreshInterval=setInterval(()=>{buildCharts();},refreshMs);
+    document.getElementById('sqlbl').innerHTML+=' <span style="color:var(--gr);font-size:9px;font-family:var(--mono);">● LIVE</span>';
+  }
+}
+function togBB(){bbOn=!bbOn;document.getElementById('bbt').className='btn bbn'+(bbOn?' on':'');buildCharts();}
+function togSD(){hiSD=!hiSD;document.getElementById('sdt').className='btn bbn'+(hiSD?' on':'');buildCharts();renderMetrics();}
+
+function swtab(name,el){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on')); el.classList.add('on');
+  ['sp-market','sp-signals','sp-watch'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('sp-'+name).style.display='block';
+}
+function swtab2(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on')); el.classList.add('on');
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));
+  document.getElementById('tp-'+name).classList.add('on');
+  if(name==='ledger') renderLedger();
+  if(name==='port') renderPort();
+  if(name==='trade') utf();
+  if(name==='pnl') renderPnL();
+  if(name==='auto') renderAutoGrid(COINS.map(ci=>({ci,sig:getSignalScore(ci.id)})));
+}
+function toast(msg,type='ok'){const el=document.getElementById('toast');el.textContent=msg;el.className=`toast ${type} show`;setTimeout(()=>el.classList.remove('show'),3000);}
+
+// ── SUPABASE PERSISTENCE ──────────────────────────────────────────────────────
+const SB_URL='https://mslpattxlevxrcwkxrtl.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zbHBhdHR4bGV2eHJjd2t4cnRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4Mzg3MzIsImV4cCI6MjA5MDQxNDczMn0.LqAfaqVyMlJLZhQBJ0d_Y4Jf3y9u91ofC9yy5sQog6Q';
+const SB_HDR={
+  'Content-Type':'application/json',
+  'apikey':SB_KEY,
+  'Authorization':'Bearer '+SB_KEY,
+};
+const LOCAL_KEY='ctf_state_v1';
+let saveTimer=null;
+
+// ── Status indicator ──
+function setConnStatus(status, detail=''){
+  const el=document.getElementById('syncStatus');
+  if(!el) return;
+  const cfg={
+    ok:      {col:'var(--gr)', icon:'☁', txt:'Synced'},
+    saving:  {col:'var(--am)', icon:'↑', txt:'Saving…'},
+    loading: {col:'var(--am)', icon:'↓', txt:'Loading…'},
+    offline: {col:'var(--mt)', icon:'○', txt:'Offline — local only'},
+    error:   {col:'var(--rd)', icon:'✖', txt:'Sync error'},
+  }[status]||{col:'var(--mt)',icon:'?',txt:status};
+  el.innerHTML=`<span style="color:${cfg.col};font-family:var(--mono);font-size:10px;cursor:${detail?'help':'default'}" title="${detail}">${cfg.icon} ${cfg.txt}</span>`;
+}
+
+// ── Low-level Supabase helpers ──
+async function sbUpsert(table, id, data){
+  const res=await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method:'POST',
+    headers:{...SB_HDR,'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify({id, data})
+  });
+  if(!res.ok){
+    const txt=await res.text();
+    throw new Error(`${table} upsert failed: ${res.status} — ${txt}`);
+  }
+}
+
+async function sbGet(table, id){
+  const res=await fetch(
+    `${SB_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}&select=data`,
+    {headers:SB_HDR}
+  );
+  if(!res.ok){
+    const txt=await res.text();
+    throw new Error(`${table} get failed: ${res.status} — ${txt}`);
+  }
+  const rows=await res.json();
+  return rows.length ? rows[0].data : null;
+}
+
+async function sbDelete(table, id){
+  const res=await fetch(
+    `${SB_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`,
+    {method:'DELETE', headers:SB_HDR}
+  );
+  if(!res.ok){
+    const txt=await res.text();
+    console.warn(`${table} delete:`, res.status, txt);
+  }
+}
+
+// ── Save: localStorage immediately, Supabase debounced ──
+function saveState(){
+  // Always write locally first (instant, no network needed)
+  try{
+    localStorage.setItem(LOCAL_KEY, JSON.stringify({
+      ledger, port, realizedPnL, riskLevel, savedAt:Date.now()
+    }));
+  }catch(e){ console.warn('localStorage write failed:', e); }
+  // Debounce remote save — waits 1s after last call before hitting Supabase
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveRemote, 1000);
+}
+
+async function saveRemote(){
+  setConnStatus('saving');
+  try{
+    // Save all three tables in parallel
+    await Promise.all([
+      sbUpsert('trades',    'ledger',    {ledger}),
+      sbUpsert('portfolio', 'positions', {port}),
+      sbUpsert('settings',  'app',       {realizedPnL, riskLevel}),
+    ]);
+    setConnStatus('ok');
+    console.log(`[sync] Saved ${ledger.length} trades, ${Object.keys(port).length} positions`);
+  }catch(e){
+    console.error('[sync] Remote save failed:', e.message);
+    setConnStatus('error', e.message);
+  }
+}
+
+// ── Load: Supabase first, localStorage fallback ──
+async function loadState(){
+  setConnStatus('loading');
+  console.log('[sync] Loading state…');
+
+  // Helper to apply loaded data into live state
+  function applyState(trData, portData, setData){
+    let restored=false;
+    if(trData?.ledger && trData.ledger.length){
+      // Replace — don't push (avoids duplicates on re-load)
+      ledger.length=0;
+      ledger.push(...trData.ledger);
+      restored=true;
+    }
+    if(portData?.port && Object.keys(portData.port).length){
+      Object.keys(port).forEach(k=>delete port[k]);
+      Object.assign(port, portData.port);
+      restored=true;
+    }
+    if(setData?.realizedPnL){
+      Object.assign(realizedPnL, setData.realizedPnL);
+    }
+    if(setData?.riskLevel){
+      riskLevel=setData.riskLevel;
+      const btn=document.getElementById('rl-'+riskLevel);
+      if(btn) setRisk(riskLevel, btn);
+    }
+    return restored;
+  }
+
+  // ── Try Supabase ──
+  try{
+    const [trData, portData, setData]=await Promise.all([
+      sbGet('trades',    'ledger'),
+      sbGet('portfolio', 'positions'),
+      sbGet('settings',  'app'),
+    ]);
+
+    const hadAnything=trData||portData||setData;
+    if(hadAnything){
+      const restored=applyState(trData, portData, setData);
+      console.log(`[sync] Loaded from Supabase: ${ledger.length} trades, ${Object.keys(port).length} positions`);
+      // Keep localStorage in sync
+      try{
+        localStorage.setItem(LOCAL_KEY, JSON.stringify({ledger,port,realizedPnL,riskLevel,savedAt:Date.now()}));
+      }catch(e){}
+      setConnStatus('ok');
+      return restored;
+    }
+
+    // Supabase had nothing — check localStorage and push it up
+    console.log('[sync] Nothing in Supabase, checking localStorage…');
+    const raw=localStorage.getItem(LOCAL_KEY);
+    if(raw){
+      const s=JSON.parse(raw);
+      const restored=applyState(
+        s.ledger    ? {ledger:s.ledger}       : null,
+        s.port      ? {port:s.port}           : null,
+        {realizedPnL:s.realizedPnL||{}, riskLevel:s.riskLevel}
+      );
+      if(restored){
+        console.log(`[sync] Loaded from localStorage: ${ledger.length} trades — pushing to Supabase`);
+        await saveRemote(); // push local data up to Supabase
+      }
+      return restored;
+    }
+
+    setConnStatus('ok');
+    console.log('[sync] No saved data found — starting fresh');
+    return false;
+
+  }catch(e){
+    // Supabase failed — fall back to localStorage
+    console.error('[sync] Supabase load failed:', e.message);
+    setConnStatus('offline', e.message);
+
+    try{
+      const raw=localStorage.getItem(LOCAL_KEY);
+      if(raw){
+        const s=JSON.parse(raw);
+        const restored=applyState(
+          s.ledger ? {ledger:s.ledger}   : null,
+          s.port   ? {port:s.port}       : null,
+          {realizedPnL:s.realizedPnL||{}, riskLevel:s.riskLevel}
+        );
+        console.log(`[sync] Offline fallback: ${ledger.length} trades from localStorage`);
+        return restored;
+      }
+    }catch(e2){ console.error('[sync] localStorage fallback also failed:', e2); }
+
+    return false;
+  }
+}
+
+async function clearState(){
+  if(!confirm('Clear all trades and portfolio data? This cannot be undone.')) return;
+  // Clear Supabase
+  try{
+    await Promise.all([
+      sbDelete('trades',    'ledger'),
+      sbDelete('portfolio', 'positions'),
+      sbDelete('settings',  'app'),
+    ]);
+  }catch(e){ console.warn('Supabase clear error:', e.message); }
+  // Clear local
+  localStorage.removeItem(LOCAL_KEY);
+  ledger.length=0;
+  Object.keys(port).forEach(k=>delete port[k]);
+  Object.keys(realizedPnL).forEach(k=>delete realizedPnL[k]);
+  renderLedger(); renderPort(); renderPnL();
+  toast('All trade data cleared','ok');
+  setConnStatus('ok');
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+buildTk();
+renderSide();
+requestAnimationFrame(()=>{
+  requestAnimationFrame(async ()=>{
+    // 1. Load saved trade state from Supabase/localStorage
+    const hadData = await loadState();
+
+    // 2. Show app with placeholder prices immediately
+    renderMain();
+    renderLedger();
+    renderPort();
+
+    // 3. Fetch REAL prices from Binance — this updates live{} and re-renders UI
+    setCGStatus('connecting');
+    const priceOk = await fetchBinanceSnapshot();
+
+    // 4. If REST snapshot worked, rebuild chart with real price as anchor
+    if(priceOk){
+      buildCharts();
+      // Load real OHLC history in background
+      loadRealHist(coin.id, tfd(tf));
+    }
+
+    // 5. Open WebSocket for real-time streaming
+    openWebSocket();
+
+    if(hadData){
+      toast(`Restored ${ledger.length} trade${ledger.length!==1?'s':''} · ${Object.keys(port).length} open position${Object.keys(port).length!==1?'s':''}`, 'ok');
+    }
+
+    // 6. Clock every second
+    setInterval(clockTick, 1000);
+
+    // 7. Start auto trader
+    startAutoTrader();
+  });
+});
+
+
+</script>
+</body>
+</html>
